@@ -50,11 +50,10 @@ $ truffle test
 
 # Tests
 
-1. Modify the pre-defined start and end timestamps:
+1. Modify the pre-defined start and end timestamps. In the following example, the staking period is 60 seconds.
 
 ```
 module.exports = function(deployer) {
-	// Use a pre-defined timestamp (local time) to simply the test, https://www.epochconverter.com/
 	var start = 1600163700;
 	var end = start + 60;
 
@@ -66,8 +65,6 @@ module.exports = function(deployer) {
 
 * `start`: staking starts
 * `end`: staking ends
-
-In the above example, the staking period is 60 seconds.
 
 2. Migrate contracts:
 
