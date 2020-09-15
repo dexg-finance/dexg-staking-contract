@@ -44,6 +44,9 @@ contract('Init', function(accounts,) {
     stakingContractAddress = stakingInstance.address;
     tokenContractAddress = tokenInstance.address;
 
+    console.log('stakingContractAddress', stakingContractAddress)
+    console.log('tokenContractAddress', tokenContractAddress)
+
     return assert.equal(!(!stakingInstance || !tokenInstance), true);
   });
 
@@ -68,7 +71,7 @@ contract('Init', function(accounts,) {
 });
 
 contract('Staking', function(accounts,) {
-  var isOpen = ((now > start) && (now < end)) ? true : false;
+  var isStaking = ((now > start) && (now < end)) ? true : false;
 
   it('should return a balance of 0 after staking contract deployment', function() {
     return tokenInstance.balanceOf(stakingContractAddress).then(function(balance) {
@@ -165,7 +168,7 @@ contract('Staking', function(accounts,) {
   }); 
 
   it('should be able to stake 100 wei', function() {
-    if (now > start) return console.log('deposit closed');
+    if (now > start) return console.log('deposit: deposit closed');
 
     return stakingInstance.deposit(wei(100)).then(function(tx) {
       assert.equal(tx.receipt.status, true);
@@ -173,7 +176,7 @@ contract('Staking', function(accounts,) {
   }); 
 
   it('should return a balance of 6600 wei after staking of user creator', function() {
-    if (!isOpen) return console.log('deposit closed');
+    if (!isStaking) return console.log('balanceOf: staking not opened');
 
     return tokenInstance.balanceOf(stakingContractAddress).then(function(balance) {
       assert.equal(balance.toString(10), wei(6600));
@@ -181,7 +184,7 @@ contract('Staking', function(accounts,) {
   });
 
   it('should return a stakes of 100 wei of the user', function() {
-    if (!isOpen) return console.log('deposit closed');
+    if (!isStaking) return console.log('stakeOf: staking not opened');
 
     return stakingInstance.stakeOf(creator).then(function(stakes) {
       assert.equal(stakes.toString(10), wei(100));
@@ -195,7 +198,7 @@ contract('Staking', function(accounts,) {
   }); 
 
   it('should return 6600 wei of calculateRewardOf of the user', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return stakingInstance.calculateRewardOf(creator).then(function(rewards) {
       assert.equal(rewards.toString(10), wei(6500));
@@ -232,7 +235,7 @@ contract('Staking', function(accounts,) {
   }); 
 
   it('should balance 100 wei of user1', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return tokenInstance.balanceOf(user1).then(function(balance) {
       assert.equal(balance.toString(10), wei(100));
@@ -240,7 +243,7 @@ contract('Staking', function(accounts,) {
   });
 
   it('should return a balance of 7000 of staking contract', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return tokenInstance.balanceOf(stakingContractAddress).then(function(balance) {
       assert.equal(balance.toString(10), wei(7000));
@@ -248,7 +251,7 @@ contract('Staking', function(accounts,) {
   });
 
   it('should return a stakeOf of 400 wei of the user1', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return stakingInstance.stakeOf(user1).then(function(stakes) {
       assert.equal(stakes.toString(10), wei(400));
@@ -256,7 +259,7 @@ contract('Staking', function(accounts,) {
   }); 
 
   it('should return 1300 wei of calculateRewardOf of creator', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return stakingInstance.calculateRewardOf(creator).then(function(rewards) {
       assert.equal(rewards.toString(10), wei(1300));
@@ -265,7 +268,7 @@ contract('Staking', function(accounts,) {
     
   // Distribute rewards
   it('should return a balance of staking contract', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return tokenInstance.balanceOf(stakingContractAddress).then(function(balance) {
       assert.equal(balance.toString(10), wei(7000));
@@ -285,10 +288,62 @@ contract('Staking', function(accounts,) {
   });
 
   it('should return getTotalStakes', function() {
-    if (!isOpen) return console.log('Staking not open');
+    if (!isStaking) return console.log('Staking not open');
 
     return stakingInstance.getTotalStakes().then(function(balance) {
       assert.equal(balance.toString(10), wei('500'));
     });
   });         
+});
+
+contract('withdraw', function(accounts) {
+  var isClosed = (now > end) ? true : false;
+
+  it('should withdraw 100 of creator', function() {
+    if (!isClosed) return console.log('Staking not close');
+
+    return stakingInstance.withdraw(wei(100), { from: creator }).then(function(tx) {
+      assert.equal(tx.receipt.status, true);
+    });
+  });
+
+  it('should return getFundsOf 1400 wei of creator', function() {
+    if (!isClosed) return console.log('Staking not close');
+
+    return stakingInstance.getFundsOf(creator).then(function(balance) {
+      assert.equal(balance.toString(10), wei('1400'));
+    });
+  });  
+
+  it('should return getWithdrawableOf 100 wei of creator', function() {
+    if (!isClosed) return console.log('Staking not close');
+
+    return stakingInstance.getWithdrawalOf(creator).then(function(balance) {
+      assert.equal(balance.toString(10), wei('100'));
+    });
+  });  
+
+  it('should withdraw 1300 of creator', function() {
+    if (!isClosed) return console.log('Staking not close');
+
+    return stakingInstance.withdraw(wei(1300)).then(function(tx) {
+      assert.equal(tx.receipt.status, true);
+    });
+  });  
+
+  it('should return getWithdrawableOf 0 wei of creator', function() {
+    if (!isClosed) return console.log('Staking not close');
+
+    return stakingInstance.getWithdrawalOf(creator).then(function(balance) {
+      assert.equal(balance.toString(10), wei(1400));
+    });
+  }); 
+
+  it('should return balance 5600 wei of stakingContractAddress', function() {
+    if (!isClosed) return console.log('Staking not close');
+
+    return tokenInstance.balanceOf(stakingContractAddress).then(function(balance) {
+      assert.equal(balance.toString(10), wei('5600'));
+    });
+  });              
 });
