@@ -50,7 +50,7 @@ $ truffle test
 
 # Tests
 
-1. Modify the pre-defined start and end timestamps. In the following example, the staking period is 60 seconds.
+1. Open the `migrations/2_deploy_contracts.js` file and modify the pre-defined `start` and `end` timestamps. In the following example, the staking period is 60 seconds.
 
 ```
 module.exports = function(deployer) {
