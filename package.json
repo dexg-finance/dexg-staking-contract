@@ -33,9 +33,10 @@
   },
   "homepage": "https://flowchain.co/",
   "dependencies": {
+    "moment": "^2.28.0",
     "solc": "0.5.17",
     "truffle": "^5.1.43",
     "truffle-hdwallet-provider": "^1.0.17",
-    "truffle-security": "^1.7.1"
+    "truffle-security": "^1.7.3"
   }
 }
