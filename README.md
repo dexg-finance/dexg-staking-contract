@@ -48,10 +48,37 @@ In the previous terminal, run the following to test contracts:
 $ truffle test
 ```
 
-# MythX Security Auditing
+# Tests
+
+1. Modify the pre-defined start and end timestamps:
 
 ```
-$ truffle run verify --mode standard contracts/StakingDextoken.sol:StakingDextoken
+module.exports = function(deployer) {
+	// Use a pre-defined timestamp (local time) to simply the test, https://www.epochconverter.com/
+	var start = 1600163700;
+	var end = start + 60;
+
+	deployer.deploy(Dextoken).then(() => {
+		return deployer.deploy(StakingDextoken, Dextoken.address, start, end);
+	})
+};
+```
+
+* `start`: staking starts
+* `end`: staking ends
+
+In the above example, the staking period is 60 seconds.
+
+2. Migrate contracts:
+
+```
+$ truffle migrate
+```
+
+3. Run tests:
+
+```
+$ truffle test
 ```
 
 # License
