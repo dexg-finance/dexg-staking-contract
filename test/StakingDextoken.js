@@ -36,18 +36,20 @@ contract('Init', function(accounts,) {
   creator = accounts[0];
   user1 = accounts[1];
 
-  it('should get deployed', async function() {
-    // Deployed
-    stakingInstance = await StakingDextoken.deployed();
-    tokenInstance = await Dextoken.deployed();
-
-    stakingContractAddress = stakingInstance.address;
+  it('should instantiate a token contract', async function() {
+    tokenInstance = await Dextoken.new();
     tokenContractAddress = tokenInstance.address;
+    assert.equal(typeof tokenContractAddress, 'string');
+  });
 
-    console.log('stakingContractAddress', stakingContractAddress)
-    console.log('tokenContractAddress', tokenContractAddress)
+  it('should instantiate a staking contract', async function() {
+    var now = parseInt(Date.now() / 1000);
+    var start = now + 10;
+    var end = start + 20;
 
-    return assert.equal(!(!stakingInstance || !tokenInstance), true);
+    stakingInstance = await StakingDextoken.new(tokenContractAddress, start, end);
+    stakingContractAddress = stakingInstance.address;
+    assert.equal(typeof stakingContractAddress, 'string');
   });
 
   it('should return start timestamp', function() {
@@ -68,9 +70,7 @@ contract('Init', function(accounts,) {
       assert.equal(true, true);
     });
   });
-});
 
-contract('Staking', function(accounts,) {
   var isStaking = ((now > start) && (now < end)) ? true : false;
 
   it('should return a balance of 0 after staking contract deployment', function() {

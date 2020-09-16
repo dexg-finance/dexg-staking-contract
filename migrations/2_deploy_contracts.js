@@ -13,8 +13,8 @@ module.exports = async function(deployer, network, [owner, account1]) {
 	let stakingInstance;
 
 	let now = parseInt(Date.now() / 1000);
-	let start = now + 10;
-	let end = start + 30;
+	let start = now + 300;
+	let end = start + 300;
 
     // Deploy the Dextoken Contract
 	await deployer.deploy(Dextoken);
