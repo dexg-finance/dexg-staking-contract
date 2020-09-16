@@ -19,7 +19,7 @@ $ npm install -g truffle
 Install this project:
 
 ```
-$ git clone git@github.com:dexg-finance/staking-contract.git
+$ git clone git@github.com:dexg-finance/dexg-staking-contract.git
 $ cd staking-contract
 $ npm install
 ```
@@ -48,7 +48,7 @@ In the previous terminal, run the following to test contracts:
 $ truffle test
 ```
 
-# Tests
+# Deploy
 
 1. Open the `migrations/2_deploy_contracts.js` file and modify the pre-defined `start` and `end` timestamps. In the following example, the staking period is 60 seconds.
 
@@ -70,12 +70,6 @@ module.exports = function(deployer) {
 
 ```
 $ truffle migrate
-```
-
-3. Run tests:
-
-```
-$ truffle test
 ```
 
 # License
