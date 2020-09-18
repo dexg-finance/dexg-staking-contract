@@ -273,7 +273,7 @@ contract StakingDextoken is Pausable {
         /// Enter staking
         enter[msg.sender] = block.timestamp;
 
-        if(stakeAmountOf[msg.sender] == 0) _addStakeholder(msg.sender);
+        if (stakeAmountOf[msg.sender] == 0) _addStakeholder(msg.sender);
         stakeAmountOf[msg.sender] = stakeAmountOf[msg.sender].add(amount);
 
         /// Total amount of user staking tokens
@@ -353,12 +353,6 @@ contract StakingDextoken is Pausable {
 
     function getEndTimestamp() external view returns(uint) {
         return _end;
-    }
-
-    /// Retrieve the shares for a stakeholder
-    function sharesOf(address _stakeholder) external view returns(uint) {
-        (uint _userStakeAmount) = stakeOf(_stakeholder);
-        return _userStakeAmount.div(_totalStakes);
     }
 
     /// Get remaining rewards of the time period
