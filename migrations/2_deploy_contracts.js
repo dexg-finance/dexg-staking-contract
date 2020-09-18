@@ -1,5 +1,6 @@
 var StakingDextoken = artifacts.require('StakingDextoken');
 var Dextoken = artifacts.require('Dextoken');
+var moment = require('moment');
 
 // Utils
 var decimals = '000000000000000000';
@@ -8,13 +9,16 @@ function wei(amount) {
   return '' + amount + decimals;
 }
 
-module.exports = async function(deployer, network, [owner, account1]) {
+module.exports = async function(deployer, network, [
+	owner, account1, account2, account3, account4, account5
+]) {
 	let tokenInstance;
 	let stakingInstance;
 
-	let now = parseInt(Date.now() / 1000);
-	let start = now + 300;
-	let end = start + 300;
+	// use UTC+0 time zone
+	let now = moment().unix();
+	let start = now + 1800;
+	let end = start + 1800;
 
     // Deploy the Dextoken Contract
 	await deployer.deploy(Dextoken);
@@ -34,11 +38,15 @@ module.exports = async function(deployer, network, [owner, account1]) {
 
     // Mint tokens
 	console.log(`Minting 500 tokens for owner: '${owner}'`);        
- 	await tokenInstance.mint(owner, wei(1500));
+ 	await tokenInstance.mint(owner, wei(500));
 
     // Mint tokens
-	console.log(`Minting 500 tokens for account1: '${account1}'`);        
- 	await tokenInstance.mint(account1, wei(500));
+	//console.log(`Minting 500 tokens for account1: '${account1}'`);        
+ 	//await tokenInstance.mint(account1, wei(500));
+ 	//await tokenInstance.mint(account2, wei(500));
+ 	//await tokenInstance.mint(account3, wei(500));
+ 	//await tokenInstance.mint(account4, wei(500));
+ 	//await tokenInstance.mint(account5, wei(500));
 
  	// Unpause
     console.log(`Unpausing 'StakingDextoken'`);
