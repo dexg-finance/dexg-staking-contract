@@ -361,7 +361,7 @@ contract StakingDextoken is Pausable {
         require(block.timestamp <= _end, "staking ended");
 
         (uint _total) = totalOriginalRewards();
-        (uint _currentDuration) = block.timestamp.sub(_start);
+        (uint _currentDuration) = _end.sub(block.timestamp);
         return _total.mul(_currentDuration).div(_duration);
     } 
     
