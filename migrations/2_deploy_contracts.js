@@ -20,6 +20,11 @@ module.exports = async function(deployer, network, [
 	let start = now + 1800;
 	let end = start + 1800;
 
+	if (network === 'development') {
+		start = now + 1800;
+		end = start + 300;
+	}
+
     // Deploy the Dextoken Contract
 	await deployer.deploy(Dextoken);
     tokenInstance = await Dextoken.deployed();
@@ -41,12 +46,18 @@ module.exports = async function(deployer, network, [
  	await tokenInstance.mint(owner, wei(500));
 
     // Mint tokens
-	//console.log(`Minting 500 tokens for account1: '${account1}'`);        
- 	//await tokenInstance.mint(account1, wei(500));
- 	//await tokenInstance.mint(account2, wei(500));
- 	//await tokenInstance.mint(account3, wei(500));
- 	//await tokenInstance.mint(account4, wei(500));
- 	//await tokenInstance.mint(account5, wei(500));
+	if (network === 'development') {
+		console.log(`Minting tokens for all users: '${account1}'`);        
+ 		await tokenInstance.mint(account1, wei(400));
+ 		await tokenInstance.mint(account2, wei(300));
+ 		await tokenInstance.mint(account3, wei(200));
+ 		await tokenInstance.mint(account4, wei(100));
+ 		await tokenInstance.mint(account5, wei(10));
+	} else if (network === 'ropsten') {
+		console.log(`Minting tokens for Ropsten users`); 
+		await tokenInstance.mint('...', wei(3000));
+		await tokenInstance.mint('...', wei(1200));       		
+	}
 
  	// Unpause
     console.log(`Unpausing 'StakingDextoken'`);
