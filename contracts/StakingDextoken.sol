@@ -315,7 +315,8 @@ contract StakingDextoken is Pausable {
 
     function setRewards(uint amount) external onlyOwner returns (bool) {
         require(amount > 0, "setRewards: invalid amount");
-        require(token0.balanceOf(address(this)) >= amount, "setRewards: insufficient balance");
+        // `amount` should be equal to the amount of tokens that are intended for reward
+        require(token0.balanceOf(address(this)) == amount, "setRewards: insufficient balance");
 
         _rewards = amount;
         return true;
