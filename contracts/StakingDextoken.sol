@@ -218,7 +218,7 @@ contract StakingDextoken is Pausable {
     /// The total stake shares of all stakeholders
     mapping(address => uint) internal totalShares;  
 
-    /// The remaing withdrawals of each stakeholders
+    /// The remaining withdrawals of each stakeholders
     mapping(address => uint) internal withdrawalOf;  
 
     /// The final withdrawable funds of each stakeholders
@@ -354,7 +354,7 @@ contract StakingDextoken is Pausable {
         return _total.mul(_currentDuration).div(_duration);
     } 
     
-    /// A method to calculate the rewards locked of the stakehodler.
+    /// A method to calculate the rewards locked of the stakeholder.
     function getRewardLocked(address _stakeholder) external view returns(uint) {
         require(block.timestamp >= _start, "getRewardLocked: staking not open");
         require(block.timestamp <= _end, "getRewardLocked: staking ended");
@@ -383,7 +383,7 @@ contract StakingDextoken is Pausable {
         return fundsOf[_address];
     }
 
-    /// Get totol original rewards
+    /// Get total original rewards
     function totalOriginalRewards() public view returns(uint) {
         return _rewards;
     } 
@@ -406,7 +406,7 @@ contract StakingDextoken is Pausable {
 
     /// A method to calculate user funds.
     function calculateFundsOf(address _stakeholder) internal returns (uint) {
-        require(stakeholders[_stakeholder] == true, "calculateFundsOf: not stakholder");
+        require(stakeholders[_stakeholder] == true, "calculateFundsOf: not stakeholder");
 
         /// Get deposit amount
         (uint _userStakeAmount) = stakeOf(_stakeholder);
@@ -414,7 +414,7 @@ contract StakingDextoken is Pausable {
         /// Get rewards
         (uint reward) = calculateRewardOf(_stakeholder);
 
-        /// Totoal funds
+        /// Total funds
         fundsOf[_stakeholder] = _userStakeAmount.add (reward);
 
         return fundsOf[_stakeholder];
