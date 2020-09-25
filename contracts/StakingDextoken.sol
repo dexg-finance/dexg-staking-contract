@@ -198,7 +198,7 @@ contract StakingDextoken is Pausable {
     uint private _end;
     uint private _duration;
 
-    IERC20 private token0;
+    IERC20 private _token0;
 
     /// Total rewards
     uint private _rewards;
@@ -231,7 +231,7 @@ contract StakingDextoken is Pausable {
         require(start < end, "DEXToken: invalid end time");
         require(_start < block.timestamp, "DEXToken: invalid start time");
 
-        token0 = IERC20(tokenAddress); 
+        _token0 = IERC20(tokenAddress); 
 
         _start = start;   
         _end = end;  
@@ -254,7 +254,7 @@ contract StakingDextoken is Pausable {
     {
         require(block.timestamp < _start, "deposit: deposit closed");
         require(amount > 0, "deposit: amount invalid");
-        require(token0.balanceOf(msg.sender) >= amount, "deposit: insufficient balance");
+        require(_token0.balanceOf(msg.sender) >= amount, "deposit: insufficient balance");
 
         /// Enter staking
         enter[msg.sender] = block.timestamp;
@@ -266,7 +266,7 @@ contract StakingDextoken is Pausable {
         _totalStakes = _totalStakes.add(amount);
 
         /// Transfer
-        token0.safeTransferFrom(msg.sender, address(this), amount);
+        _token0.safeTransferFrom(msg.sender, address(this), amount);
 
         emit TokenDeposit(msg.sender, amount);
         return true;
@@ -288,13 +288,13 @@ contract StakingDextoken is Pausable {
         require(withdrawalOf[msg.sender].add(amount) <= fundsOf[msg.sender], "withdraw: funds insufficient");
 
         /// Not overflow
-        require(token0.balanceOf(address(this)) >= amount);
+        require(_token0.balanceOf(address(this)) >= amount);
 
         /// Withdraw
         withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);
 
         /// Unlocked and Transfer
-        token0.safeTransfer(msg.sender, amount);
+        _token0.safeTransfer(msg.sender, amount);
 
         return true;
     }
@@ -302,7 +302,7 @@ contract StakingDextoken is Pausable {
     function setRewards(uint amount) external onlyOwner returns (bool) {
         require(amount > 0, "setRewards: invalid amount");
         // `amount` should be equal to the amount of tokens that are intended for reward
-        require(token0.balanceOf(address(this)) == amount, "setRewards: insufficient balance");
+        require(_token0.balanceOf(address(this)) == amount, "setRewards: insufficient balance");
 
         _rewards = amount;
         return true;
