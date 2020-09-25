@@ -226,8 +226,6 @@ contract StakingDextoken is Pausable {
     /// The timestamp of user entering the stake
     mapping(address => uint) internal enter; 
 
-    bool private _paused;
-
     constructor (address tokenAddress, uint start, uint end) public {
         token0 = IERC20(tokenAddress); 
 
@@ -235,23 +233,7 @@ contract StakingDextoken is Pausable {
         _end = end;  
         _duration = end.sub(start);  
 
-        _paused = true;
         _rewards = 0;
-    }
-
-    modifier whenNotPaused() {
-        require(!_paused);
-        _;
-    }
-
-    modifier whenPaused() {
-        require(_paused);
-        _;
-    }
-
-    modifier onlyIfActive {
-        require(_paused == false);
-        _;
     }
 
     modifier notFrozen(address _account) {
@@ -262,7 +244,7 @@ contract StakingDextoken is Pausable {
     /// The staking function
     function deposit(uint amount) 
         external 
-        onlyIfActive 
+        whenNotPaused 
         notFrozen(msg.sender) 
         returns (bool success) 
     {
@@ -288,7 +270,7 @@ contract StakingDextoken is Pausable {
 
     function withdraw(uint amount) 
         external 
-        onlyIfActive 
+        whenNotPaused 
         notFrozen(msg.sender) 
         returns (bool success) 
     {
@@ -375,16 +357,6 @@ contract StakingDextoken is Pausable {
         (uint _reward) = calculateRewardOf(_stakeholder);
         return _reward.mul(_currentDuration).div(_duration);
     } 
-
-    function pause() public onlyOwner whenNotPaused {
-        _paused = true;
-        emit Paused(msg.sender);
-    }
-
-    function unpause() public onlyOwner whenPaused {
-        _paused = false;
-        emit Unpaused(msg.sender);
-    }
 
     function isStakeholder(address _address) public view returns(bool) {
         return stakeholders[_address];
