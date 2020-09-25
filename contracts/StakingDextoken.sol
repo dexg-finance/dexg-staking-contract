@@ -193,6 +193,7 @@ contract StakingDextoken is Pausable {
     event Freeze(address indexed account);
     event Unfreeze(address indexed account);
     event TokenDeposit(address account, uint amount);
+    event TokenWithdraw(address account, uint amount);
 
     uint private _start;
     uint private _end;
@@ -296,6 +297,7 @@ contract StakingDextoken is Pausable {
         /// Unlocked and Transfer
         _token0.safeTransfer(msg.sender, amount);
 
+        emit TokenWithdraw(msg.sender, amount);
         return true;
     }
 
