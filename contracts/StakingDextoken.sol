@@ -227,6 +227,10 @@ contract StakingDextoken is Pausable {
     mapping(address => uint) internal enter; 
 
     constructor (address tokenAddress, uint start, uint end) public {
+        require(tokenAddress != address(0), "DEXToken: zero address");
+        require(start < end, "DEXToken: invalid end time");
+        require(_start < block.timestamp, "DEXToken: invalid start time");
+
         token0 = IERC20(tokenAddress); 
 
         _start = start;   
