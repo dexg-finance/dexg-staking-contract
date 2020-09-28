@@ -23,7 +23,7 @@ module.exports = async function(deployer, network, [
 
 	if (network === 'development') {
 		start = now + 10;
-		end = start + 60;
+		end = start + 100;
 	}
 
     // Deploy the BPT token Contract
@@ -66,11 +66,11 @@ module.exports = async function(deployer, network, [
     // Mint tokens
 	if (network === 'development') {
 		console.log(`Staking Token: Minting tokens for all users: '${account1}'`);        
- 		await stakingTokenInstance.mint(account1, wei(10));
- 		await stakingTokenInstance.mint(account2, wei(20));
- 		await stakingTokenInstance.mint(account3, wei(30));
- 		await stakingTokenInstance.mint(account4, wei(40));
- 		await stakingTokenInstance.mint(account5, wei(50));
+ 		await stakingTokenInstance.mint(account1, wei(100));
+ 		await stakingTokenInstance.mint(account2, wei(200));
+ 		await stakingTokenInstance.mint(account3, wei(300));
+ 		await stakingTokenInstance.mint(account4, wei(400));
+ 		await stakingTokenInstance.mint(account5, wei(500));
 	} else if (network === 'ropsten') {
 		console.log(`Staking Token: Minting tokens for Ropsten users`); 
 		await stakingTokenInstance.mint('...', wei(100));

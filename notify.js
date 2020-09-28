@@ -37,12 +37,12 @@ async function start() {
     console.log(`owner: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: owner});
     console.log(`owner: Deposit`);
-    await stakingContractInstance.deposit(toWei(1), {from: owner});	
+    await stakingContractInstance.deposit(toWei(0.1), {from: owner});	
 
     console.log(`account1: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: account1});
     console.log(`account1: Deposit`);
-    await stakingContractInstance.deposit(toWei(9), {from: account1});
+    await stakingContractInstance.deposit(toWei(99.5), {from: account1});
 
 	setInterval(async() => {
 		console.log(`Notify... StakingDextoken::distributeRewards()`)
@@ -51,8 +51,15 @@ async function start() {
 		let stakeOf = await stakingContractInstance.stakeOf(account, {from: owner});
 		console.log(`stakeOf... ${stakeOf}`);
 
-		let rewards = await stakingContractInstance.rewardOf(account, {from: owner});
-		console.log(`rewardOf... ${fromWei(rewards)}`);
+		let rewards1 = await stakingContractInstance.rewardOf(account, {from: owner});
+		console.log(`rewardOf owner... ${fromWei(rewards1)}`);
+
+		let rewards2 = await stakingContractInstance.rewardOf(account1, {from: account1});
+		console.log(`rewardOf account1... ${fromWei(rewards2)}`);
+
+		let issued = parseFloat(fromWei(rewards1))+parseFloat(fromWei(rewards2));
+
+		console.log(`reward issued... ${issued}`);
 
 		//if (parseFloat(fromWei(stakeOf)) > 0) {
 	    //	console.log(`account1: unstake`);

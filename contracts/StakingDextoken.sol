@@ -204,7 +204,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         require(_token1.balanceOf(address(this)) >= amount, "claim: insufficient balance");
         ///
         uint remaining = rewardOf(msg.sender).sub(claimOf[msg.sender]);
-        require(remaining >= amount, "claim: invalid amount")
+        require(remaining >= amount, "claim: invalid amount");
         /// Keep track user withdraws
         claimOf[msg.sender] = claimOf[msg.sender].add(amount);  
         _token1.safeTransfer(msg.sender, amount);
