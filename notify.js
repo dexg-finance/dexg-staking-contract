@@ -49,7 +49,7 @@ async function start() {
 		await stakingContractInstance.notifyDistributeRewards({from: owner});
 
 		let stakeOf = await stakingContractInstance.stakeOf(account, {from: owner});
-		console.log(`stakeOf... ${fromWei(stakeOf)}`);
+		console.log(`stakeOf... ${stakeOf}`);
 
 		let rewards = await stakingContractInstance.rewardOf(account, {from: owner});
 		console.log(`rewardOf... ${fromWei(rewards)}`);

@@ -78,7 +78,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         if (_balances[account] == 0) {
             return rewards[account];
         }
-        return _balances[account].mul(rewardPerTokenStored).div(1e18).add(rewards[account]);
+        return _balances[account].mul(rewardPerTokenStored).add(rewards[account]);
     }
 
     function lastTimeRewardApplicable() public view returns (uint) {
@@ -128,7 +128,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _rewards = amount;
         lastUpdateTime = _start;  
         lastRewardTime = _start.sub(1);
-        rewardRate = _rewards.mul(1e18).div(_duration);
+        rewardRate = _rewards.mul(1e18);
         return true;
     }
 
@@ -199,9 +199,12 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         notFrozen(msg.sender) 
     {
         require(amount > 0, "withdraw: amount invalid");
-        require(block.timestamp > _end, "withdraw: staking not ended");        
+        require(block.timestamp > _end, "claim: staking not ended");        
         /// Not overflow
-        require(_token1.balanceOf(address(this)) >= amount);
+        require(_token1.balanceOf(address(this)) >= amount, "claim: insufficient balance");
+        ///
+        uint remaining = rewardOf(msg.sender).sub(claimOf[msg.sender]);
+        require(remaining >= amount, "claim: invalid amount")
         /// Keep track user withdraws
         claimOf[msg.sender] = claimOf[msg.sender].add(amount);  
         _token1.safeTransfer(msg.sender, amount);
@@ -262,7 +265,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
 
     /// Retrieve the stake for a stakeholder
     function rewardOf(address _stakeholder) public view returns (uint) {
-        return rewards[_stakeholder];
+        return rewards[_stakeholder].div(1e18).div(_duration);
     }
 
     /// The stakes of all stakeholders
