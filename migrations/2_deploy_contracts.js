@@ -2,6 +2,7 @@ var StakingDextoken = artifacts.require('StakingDextoken');
 var BPT = artifacts.require('BPT');
 var Dextoken = artifacts.require('Dextoken');
 var moment = require('moment');
+var fs = require('fs');
 
 // Utils
 var decimals = '000000000000000000';
@@ -24,7 +25,7 @@ module.exports = async function(deployer, network, [
 
 	if (network === 'development') {
 		start = now + 10;
-		end = start + 300;
+		end = start + 10;
 	}
 
     // Deploy the BPT token Contract
@@ -38,6 +39,14 @@ module.exports = async function(deployer, network, [
     // Deploy the StakingDextoken Contract
     await deployer.deploy(StakingDextoken, BPT.address, Dextoken.address);
     stakingContractInstance = await StakingDextoken.deployed();
+
+    const data = 
+    `VUE_APP_STAKING_TOKEN_ADDRESS=${BPT.address}\n` +
+    `VUE_APP_REWARD_TOKEN_ADDRESS=${Dextoken.address}\n` +
+    `VUE_APP_STAKING_CONTRACT_ADDRESS=${StakingDextoken.address}\n` +
+    `ACCOUNT0=${owner}\n`;
+
+    fs.writeFileSync('.env', data);
 
     // Staking Token: Add minter
     console.log(`Staking Token: Add minter ${owner}`);

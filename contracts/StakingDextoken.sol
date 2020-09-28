@@ -21,11 +21,12 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
 
     uint public rewardPerTokenStored = 0;
     uint public lastUpdateTime = 0;
+    uint public lastRewardTime = 0;
     uint public rewardRate = 0;
 
     // User award balance
-    mapping(address => uint256) public rewards;
-    mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint) public rewards;
+    mapping(address => uint) public userRewardPerTokenPaid;
 
     uint private _start;
     uint private _end;
@@ -73,28 +74,44 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _;
     }
 
-    function updateReward(address account) public {
-        rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = lastTimeRewardApplicable();
-        if (account != address(0)) {
-            rewards[account] = earned(account);
-        }
-    }
-
     function earned(address account) public view returns (uint) {
-        return _balances[account].mul(rewardPerToken()).add(rewards[account]);
+        return _balances[account].mul(rewardPerTokenStored).div(_totalSupply).add(rewards[account]);
     }
 
-    function lastTimeRewardApplicable() public view returns (uint256) {
-        return Math.max(block.timestamp, _start);
+    function lastTimeRewardApplicable() public view returns (uint) {
+        if (block.timestamp < _start) {
+            return _start;
+        }
+        if (block.timestamp > _end) {
+            return _end;
+        }        
+        return block.timestamp;
     }
 
     function rewardPerToken() public view returns (uint) {
         if (_totalSupply == 0) {
             return rewardPerTokenStored;
         }
-        return lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).div(_totalSupply);
+        uint ticks = lastRewardTime.sub(lastUpdateTime);
+        return ticks.mul(rewardRate);
     }
+
+    function notifyDistributeRewards() public onlyOwner nonReentrant returns (bool) {
+        distributeRewards();
+        return true;
+    }
+
+    function distributeRewards() internal returns (bool) {
+        lastRewardTime = lastTimeRewardApplicable();
+        rewardPerTokenStored = rewardPerToken();
+        for (uint i = 0; i < stakeHolders.length; i++) {
+            if (stakeHolders[i] != address(0)) { 
+                rewards[stakeHolders[i]] = earned(stakeHolders[i]);
+            }
+        }
+        lastUpdateTime = lastRewardTime;   
+        return true;
+    } 
 
     function setRewardPeriod(uint amount, uint start, uint end) external onlyOwner returns (bool) {
         require(block.timestamp < start, "setRewardPeriod: can not override start");
@@ -106,7 +123,8 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _end = end;  
         _duration = end.sub(start);  
         _rewards = amount;
-        lastUpdateTime = _start;        
+        lastUpdateTime = _start;  
+        lastRewardTime = _start;
         rewardRate = _rewards.div(_duration);
         return true;
     }
@@ -143,7 +161,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         _totalSupply = _totalSupply.add(amount);  
         addStakeholder(msg.sender);
-        updateReward(msg.sender);
+        distributeRewards();
         _token0.safeTransferFrom(msg.sender, address(this), amount);
         emit TokenDeposit(msg.sender, amount);
     }
@@ -163,7 +181,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         /// Keep track user withdraws
         withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);  
         removeStakeholder(msg.sender);   
-        updateReward(msg.sender);
+        distributeRewards();
         _token0.safeTransfer(msg.sender, amount);
         emit TokenWithdraw(msg.sender, amount);
     }
@@ -181,7 +199,6 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         require(_token1.balanceOf(address(this)) >= amount);
         /// Keep track user withdraws
         claimOf[msg.sender] = claimOf[msg.sender].add(amount);  
-        updateReward(msg.sender);
         _token1.safeTransfer(msg.sender, amount);
         emit TokenClaim(msg.sender, amount);
     }
@@ -252,13 +269,4 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     function totalRewards() public view returns (uint) {
         return _rewards;
     }  
-
-    function distributeRewards() external onlyOwner returns (bool) {
-        rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = lastTimeRewardApplicable();
-        for (uint i = 0; i < stakeHolders.length; i++){
-            rewards[stakeHolders[i]] = earned(stakeHolders[i]);
-        }
-        return true;
-    }   
 }   

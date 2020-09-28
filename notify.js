@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Web3 = require('web3');
 const provider = new Web3.providers.HttpProvider("http://localhost:7545");
 const contract = require('truffle-contract');
@@ -5,9 +6,9 @@ const contractJson = require("./build/contracts/StakingDextoken.json");
 const stakingContract = contract(contractJson);
 stakingContract.setProvider(provider);
 
-const address = process.env.STAKING_CONTRACT;
-const owner = '0x7A57c3DC6eCaEba134ea33F8ce67BF60E8A9cAE9';
-const account = '0x7A57c3DC6eCaEba134ea33F8ce67BF60E8A9cAE9';
+const address = process.env.VUE_APP_STAKING_CONTRACT_ADDRESS;
+const owner = process.env.ACCOUNT0;
+const account = owner;
 
 async function start() {
 	const stakingContractInstance = await stakingContract.at(address);
@@ -17,7 +18,7 @@ async function start() {
 
 	setInterval(async() => {
 		console.log(`Notify... StakingDextoken::distributeRewards()`)
-		await stakingContractInstance.distributeRewards({from: owner});
+		await stakingContractInstance.notifyDistributeRewards({from: owner});
 
 		let stakeOf = await stakingContractInstance.stakeOf(account, {from: owner});
 		console.log(`stakeOf... ${stakeOf}`);
