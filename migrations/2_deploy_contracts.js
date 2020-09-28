@@ -23,7 +23,7 @@ module.exports = async function(deployer, network, [
 
 	if (network === 'development') {
 		start = now + 10;
-		end = start + 100;
+		end = start + 30;
 	}
 
     // Deploy the BPT token Contract
