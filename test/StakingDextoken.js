@@ -111,6 +111,12 @@ contract('Init', function(accounts,) {
     });
   });
 
+  it('should be able to pause', function() {
+    return stakingInstance.pause().then(function(tx) {
+      assert.equal(tx.receipt.status, true);
+    });
+  });
+
   it('should be able to unpause', function() {
     return stakingInstance.unpause().then(function(tx) {
       assert.equal(tx.receipt.status, true);

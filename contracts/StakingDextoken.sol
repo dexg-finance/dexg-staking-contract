@@ -1,244 +1,71 @@
-/**
- * Developed by The Flowchain Foundation
- */
 pragma solidity 0.5.17;
 
-interface IERC20 {
-    event Transfer(address indexed from, address indexed to, uint value);
-    event Approval(address indexed owner, address indexed spender, uint value);
+import "openzeppelin-solidity/contracts/math/Math.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 
-    function totalSupply() external view returns (uint);
-    function balanceOf(address account) external view returns (uint);
-    function transfer(address recipient, uint amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint);
-    function approve(address spender, uint amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint amount) external returns (bool);
-}
+import "./Pausable.sol";
 
 
-library SafeMath {
-    function add(uint a, uint b) internal pure returns (uint) {
-        uint c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    function sub(uint a, uint b) internal pure returns (uint) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    function sub(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
-        require(b <= a, errorMessage);
-        uint c = a - b;
-
-        return c;
-    }
-
-    function mul(uint a, uint b) internal pure returns (uint) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    function div(uint a, uint b) internal pure returns (uint) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    function div(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
-        /// Solidity only automatically asserts when dividing by 0
-        require(b > 0, errorMessage);
-        uint c = a / b;
-
-        return c;
-    }
-}
-
-
-library Address {
-    function isContract(address account) internal view returns (bool) {
-        bytes32 codehash;
-        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-        /// solhint-disable-next-line no-inline-assembly
-        assembly { codehash := extcodehash(account) }
-        return (codehash != 0x0 && codehash != accountHash);
-    }
-}
-
-
-library SafeERC20 {
-    using SafeMath for uint;
-    using Address for address;
-
-    function safeTransfer(IERC20 token, address to, uint value) internal {
-        callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
-    }
-
-    function safeTransferFrom(IERC20 token, address from, address to, uint value) internal {
-        callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
-    }
-
-    function safeApprove(IERC20 token, address spender, uint value) internal {
-        require((value == 0) || (token.allowance(address(this), spender) == 0),
-            "SafeERC20: approve from non-zero to non-zero allowance"
-        );
-        callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
-    }
-
-    function callOptionalReturn(IERC20 token, bytes memory data) private {
-        require(address(token).isContract(), "SafeERC20: call to non-contract");
-
-        /// solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory returndata) = address(token).call(data);
-        require(success, "SafeERC20: low-level call failed");
-
-        if (returndata.length > 0) { // Return data is optional
-            /// solhint-disable-next-line max-line-length
-            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
-        }
-    }
-}
-
-
-contract Ownable {
-    address public owner;
-    address public newOwner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    constructor() public {
-        owner = msg.sender;
-        newOwner = address(0);
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-
-    modifier onlyNewOwner() {
-        require(msg.sender != address(0));
-        require(msg.sender == newOwner);
-        _;
-    }
-    
-    function isOwner(address account) public view returns (bool) {
-        if( account == owner ){
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    function transferOwnership(address _newOwner) public onlyOwner {
-        require(_newOwner != address(0));
-        newOwner = _newOwner;
-    }
-
-    function acceptOwnership() public onlyNewOwner {
-        emit OwnershipTransferred(owner, newOwner);        
-        owner = newOwner;
-        newOwner = address(0);
-    }
-}
-
-
-contract Pausable is Ownable {
-    event Paused(address account);
-    event Unpaused(address account);
-
-    bool private _paused;
-
-    constructor () public {
-        _paused = false;
-    }    
-
-    modifier whenNotPaused() {
-        require(!_paused);
-        _;
-    }
-
-    modifier whenPaused() {
-        require(_paused);
-        _;
-    }
-
-    function paused() public view returns (bool) {
-        return _paused;
-    }
-
-    function pause() public onlyOwner whenNotPaused {
-        _paused = true;
-        emit Paused(msg.sender);
-    }
-
-    function unpause() public onlyOwner whenPaused {
-        _paused = false;
-        emit Unpaused(msg.sender);
-    }
-}
-
-
-contract StakingDextoken is Pausable {
+contract StakingDextoken is ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
-    using Address for address;
     using SafeMath for uint;
 
     event Freeze(address indexed account);
     event Unfreeze(address indexed account);
     event TokenDeposit(address account, uint amount);
     event TokenWithdraw(address account, uint amount);
+    event TokenClaim(address account, uint amount);
+
+    uint public rewardPerTokenStored = 0;
+    uint public lastUpdateTime = 0;
+    uint public rewardRate = 0;
+
+    // User award balance
+    mapping(address => uint256) public rewards;
+    mapping(address => uint256) public userRewardPerTokenPaid;
 
     uint private _start;
     uint private _end;
     uint private _duration;
 
+    /// Staking token
     IERC20 private _token0;
+
+    /// Reward token
+    IERC20 private _token1;
 
     /// Total rewards
     uint private _rewards;
 
     /// Total amount of user staking tokens
-    uint private _totalStakes;
+    uint private _totalSupply;
 
     mapping(address => bool) public frozenAccount;
 
-    /// Keep track of stakeholders
-    mapping(address => bool) internal stakeholders;
+    /// The staking users
+    address[] internal stakeHolders;
 
-    /// The stakes for each stakeholder
-    mapping(address => uint) internal stakeAmountOf;          
+    /// The amount of tokens staked
+    mapping(address => uint) private _balances;        
 
     /// The total stake shares of all stakeholders
-    mapping(address => uint) internal totalShares;  
+    mapping(address => uint) internal totalShares;
 
-    /// The remaining withdrawals of each stakeholders
+    /// The remaining withdrawals of staked tokens
     mapping(address => uint) internal withdrawalOf;  
 
-    /// The final withdrawable funds of each stakeholders
-    mapping(address => uint) internal fundsOf;
+    /// The remaining withdrawals of reward tokens
+    mapping(address => uint) internal claimOf;
 
-    /// The timestamp of user entering the stake
-    mapping(address => uint) internal enter; 
+    constructor (address token0, address token1) public {
+        require(token0 != address(0), "DEXToken: zero address");
+        require(token1 != address(0), "DEXToken: zero address");
 
-    constructor (address tokenAddress, uint start, uint end) public {
-        require(tokenAddress != address(0), "DEXToken: zero address");
-        require(start < end, "DEXToken: invalid end time");
-        require(_start < block.timestamp, "DEXToken: invalid start time");
-
-        _token0 = IERC20(tokenAddress); 
-
-        _start = start;   
-        _end = end;  
-        _duration = end.sub(start);  
-
-        _rewards = 0;
+        _token0 = IERC20(token0);
+        _token1 = IERC20(token1);
     }
 
     modifier notFrozen(address _account) {
@@ -246,68 +73,117 @@ contract StakingDextoken is Pausable {
         _;
     }
 
-    /// The staking function
-    function deposit(uint amount) 
-        external 
-        whenNotPaused 
-        notFrozen(msg.sender) 
-        returns (bool success) 
-    {
-        require(block.timestamp < _start, "deposit: deposit closed");
-        require(amount > 0, "deposit: amount invalid");
-        require(_token0.balanceOf(msg.sender) >= amount, "deposit: insufficient balance");
-
-        /// Enter staking
-        enter[msg.sender] = block.timestamp;
-
-        if (stakeAmountOf[msg.sender] == 0) _addStakeholder(msg.sender);
-        stakeAmountOf[msg.sender] = stakeAmountOf[msg.sender].add(amount);
-
-        /// Total amount of user staking tokens
-        _totalStakes = _totalStakes.add(amount);
-
-        /// Transfer
-        _token0.safeTransferFrom(msg.sender, address(this), amount);
-
-        emit TokenDeposit(msg.sender, amount);
-        return true;
+    function updateReward(address account) public {
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = lastTimeRewardApplicable();
+        if (account != address(0)) {
+            rewards[account] = earned(account);
+        }
     }
 
-    function withdraw(uint amount) 
-        external 
-        whenNotPaused 
-        notFrozen(msg.sender) 
-        returns (bool success) 
-    {
-        require(block.timestamp > _end, "withdraw: withdraw not open");
-        require(amount > 0, "withdraw: amount invalid");
-
-        /// Get all user funds
-        calculateFundsOf(msg.sender);
-
-        require(fundsOf[msg.sender] > 0, "withdraw: funds insufficient");
-        require(withdrawalOf[msg.sender].add(amount) <= fundsOf[msg.sender], "withdraw: funds insufficient");
-
-        /// Not overflow
-        require(_token0.balanceOf(address(this)) >= amount);
-
-        /// Withdraw
-        withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);
-
-        /// Unlocked and Transfer
-        _token0.safeTransfer(msg.sender, amount);
-
-        emit TokenWithdraw(msg.sender, amount);
-        return true;
+    function earned(address account) public view returns (uint) {
+        return _balances[account].mul(rewardPerToken()).add(rewards[account]);
     }
 
-    function setRewards(uint amount) external onlyOwner returns (bool) {
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return Math.max(block.timestamp, _start);
+    }
+
+    function rewardPerToken() public view returns (uint) {
+        if (_totalSupply == 0) {
+            return rewardPerTokenStored;
+        }
+        return lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).div(_totalSupply);
+    }
+
+    function setRewardPeriod(uint amount, uint start, uint end) external onlyOwner returns (bool) {
+        require(block.timestamp < start, "setRewardPeriod: can not override start");
+        require(start < end, "DEXToken: invalid end time");
         require(amount > 0, "setRewards: invalid amount");
         // `amount` should be equal to the amount of tokens that are intended for reward
-        require(_token0.balanceOf(address(this)) == amount, "setRewards: insufficient balance");
-
+        require(_token1.balanceOf(address(this)) == amount, "setRewards: insufficient reward balance");
+        _start = start;   
+        _end = end;  
+        _duration = end.sub(start);  
         _rewards = amount;
+        lastUpdateTime = _start;        
+        rewardRate = _rewards.div(_duration);
         return true;
+    }
+
+    function isStakeholder(address _address) public view returns(bool, uint) {
+        for (uint i = 0; i < stakeHolders.length; i++) {
+            if (_address == stakeHolders[i]) return (true, i);
+        }
+        return (false, 0);
+    }
+
+    function addStakeholder(address _stakeholder) internal {
+        (bool _isStakeholder, ) = isStakeholder(_stakeholder);
+        if(!_isStakeholder) stakeHolders.push(_stakeholder);
+    }
+
+    function removeStakeholder(address _stakeholder) internal {
+        (bool _isStakeholder, uint s) = isStakeholder(_stakeholder);
+        if (_isStakeholder) {
+            stakeHolders[s] = stakeHolders[stakeHolders.length - 1];
+            stakeHolders.pop();
+        }
+    }
+
+    /// Deposit staking tokens
+    function deposit(uint amount) 
+        external 
+        nonReentrant
+        whenNotPaused 
+        notFrozen(msg.sender) 
+    {
+        require(amount > 0, "deposit: cannot stake 0");
+        require(_token0.balanceOf(msg.sender) >= amount, "deposit: insufficient balance");
+        _balances[msg.sender] = _balances[msg.sender].add(amount);
+        _totalSupply = _totalSupply.add(amount);  
+        addStakeholder(msg.sender);
+        updateReward(msg.sender);
+        _token0.safeTransferFrom(msg.sender, address(this), amount);
+        emit TokenDeposit(msg.sender, amount);
+    }
+
+    /// Withdraw staked tokens
+    function withdraw(uint amount) 
+        external 
+        nonReentrant
+        whenNotPaused 
+        notFrozen(msg.sender) 
+    {
+        require(amount > 0, "withdraw: amount invalid");
+        /// Not overflow
+        require(_token0.balanceOf(address(this)) >= amount);
+        _totalSupply = _totalSupply.sub(amount);
+        _balances[msg.sender] = _balances[msg.sender].sub(amount);
+        /// Keep track user withdraws
+        withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);  
+        removeStakeholder(msg.sender);   
+        updateReward(msg.sender);
+        _token0.safeTransfer(msg.sender, amount);
+        emit TokenWithdraw(msg.sender, amount);
+    }
+
+    /// Claim reward tokens
+    function claim(uint amount) 
+        external 
+        nonReentrant
+        whenNotPaused 
+        notFrozen(msg.sender) 
+    {
+        require(amount > 0, "withdraw: amount invalid");
+        require(block.timestamp > _end, "withdraw: staking not ended");        
+        /// Not overflow
+        require(_token1.balanceOf(address(this)) >= amount);
+        /// Keep track user withdraws
+        claimOf[msg.sender] = claimOf[msg.sender].add(amount);  
+        updateReward(msg.sender);
+        _token1.safeTransfer(msg.sender, amount);
+        emit TokenClaim(msg.sender, amount);
     }
 
     function freezeAccount(address account) external onlyOwner returns (bool) {
@@ -332,15 +208,19 @@ contract StakingDextoken is Pausable {
         return withdrawalOf[_stakeholder];
     }
 
-    function getDuration() external view returns(uint) {
+    function getClaimOf(address _stakeholder) external view returns (uint) {
+        return claimOf[_stakeholder];
+    }
+
+    function getDuration() external view returns (uint) {
         return _duration;
     }
 
-    function getStartTimestamp() external view returns(uint) {
+    function getStartTimestamp() external view returns (uint) {
         return _start;
     }
 
-    function getEndTimestamp() external view returns(uint) {
+    function getEndTimestamp() external view returns (uint) {
         return _end;
     }
 
@@ -348,75 +228,37 @@ contract StakingDextoken is Pausable {
     function remainingRewards() external view returns(uint) {
         require(block.timestamp >= _start, "staking not open");
         require(block.timestamp <= _end, "staking ended");
-
-        (uint _total) = totalOriginalRewards();
+        (uint _total) = totalRewards();
         (uint _currentDuration) = _end.sub(block.timestamp);
         return _total.mul(_currentDuration).div(_duration);
-    } 
-    
-    /// A method to calculate the rewards locked of the stakeholder.
-    function getRewardLocked(address _stakeholder) external view returns(uint) {
-        require(block.timestamp >= _start, "getRewardLocked: staking not open");
-        require(block.timestamp <= _end, "getRewardLocked: staking ended");
-
-        (uint _currentDuration) = block.timestamp.sub(_start);
-        (uint _reward) = calculateRewardOf(_stakeholder);
-        return _reward.mul(_currentDuration).div(_duration);
-    } 
-
-    function isStakeholder(address _address) public view returns(bool) {
-        return stakeholders[_address];
     }
 
     /// Retrieve the stake for a stakeholder
-    function stakeOf(address _stakeholder) public view returns(uint) {
-        return stakeAmountOf[_stakeholder];
+    function stakeOf(address _stakeholder) public view returns (uint) {
+        return _balances[_stakeholder];
+    }
+
+    /// Retrieve the stake for a stakeholder
+    function rewardOf(address _stakeholder) public view returns (uint) {
+        return rewards[_stakeholder];
     }
 
     /// The stakes of all stakeholders
-    function getTotalStakes() public view returns(uint) {
-        return _totalStakes;
-    }
-
-    function getFundsOf(address _address) public view returns (uint) {
-        require(fundsOf[_address] > 0, "withdraw: funds insufficient");
-        return fundsOf[_address];
+    function getTotalStakes() public view returns (uint) {
+        return _totalSupply;
     }
 
     /// Get total original rewards
-    function totalOriginalRewards() public view returns(uint) {
+    function totalRewards() public view returns (uint) {
         return _rewards;
-    } 
+    }  
 
-    /// A simple method that calculates the final rewards for each stakeholder by shares.
-    function calculateRewardOf(address _stakeholder) public view returns(uint) {
-        (uint _userStakeAmount) = stakeOf(_stakeholder);
-        require(_totalStakes > 0, "calculateRewardOf: invalid total stakes");
-
-        return _rewards.mul(_userStakeAmount).div(_totalStakes);
-    }
-
-    function _addStakeholder(address _stakeholder) internal {
-        stakeholders[_stakeholder] = true;
-    }
-
-    function _removeStakeholder(address _stakeholder) internal {
-        stakeholders[_stakeholder] = false;
-    }
-
-    /// A method to calculate user funds.
-    function calculateFundsOf(address _stakeholder) internal returns (uint) {
-        require(stakeholders[_stakeholder] == true, "calculateFundsOf: not stakeholder");
-
-        /// Get deposit amount
-        (uint _userStakeAmount) = stakeOf(_stakeholder);
-
-        /// Get rewards
-        (uint reward) = calculateRewardOf(_stakeholder);
-
-        /// Total funds
-        fundsOf[_stakeholder] = _userStakeAmount.add (reward);
-
-        return fundsOf[_stakeholder];
+    function distributeRewards() external onlyOwner returns (bool) {
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = lastTimeRewardApplicable();
+        for (uint i = 0; i < stakeHolders.length; i++){
+            rewards[stakeHolders[i]] = earned(stakeHolders[i]);
+        }
+        return true;
     }   
 }   

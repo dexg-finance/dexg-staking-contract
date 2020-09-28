@@ -1,4 +1,5 @@
 var StakingDextoken = artifacts.require('StakingDextoken');
+var BPT = artifacts.require('BPT');
 var Dextoken = artifacts.require('Dextoken');
 var moment = require('moment');
 
@@ -12,58 +13,72 @@ function wei(amount) {
 module.exports = async function(deployer, network, [
 	owner, account1, account2, account3, account4, account5
 ]) {
-	let tokenInstance;
-	let stakingInstance;
+	let stakingTokenInstance;
+	let rewardTokenInstance;	
+	let stakingContractInstance;
 
 	// use UTC+0 time zone
-	let now = moment().unix();
+	let now = moment.utc().unix();
 	let start = now + 1800;
-	let end = start + 1800;
+	let end = start + 3600;
 
 	if (network === 'development') {
-		start = now + 1800;
+		start = now + 10;
 		end = start + 300;
 	}
 
+    // Deploy the BPT token Contract
+	await deployer.deploy(BPT);
+    stakingTokenInstance = await BPT.deployed();
+
     // Deploy the Dextoken Contract
 	await deployer.deploy(Dextoken);
-    tokenInstance = await Dextoken.deployed();
+    rewardTokenInstance = await Dextoken.deployed();
 
     // Deploy the StakingDextoken Contract
-    await deployer.deploy(StakingDextoken, Dextoken.address, start, end);
-    stakingInstance = await StakingDextoken.deployed();
+    await deployer.deploy(StakingDextoken, BPT.address, Dextoken.address);
+    stakingContractInstance = await StakingDextoken.deployed();
 
-    // Add minter
-    console.log(`Add minter ${owner}`);
-    await tokenInstance.addMinter(owner);
+    // Staking Token: Add minter
+    console.log(`Staking Token: Add minter ${owner}`);
+    await stakingTokenInstance.addMinter(owner);
 
-    // Mint tokens
-	console.log(`Minting 6500 tokens for address: '${StakingDextoken.address}'`);        
- 	await tokenInstance.mint(StakingDextoken.address, wei(6500));
+    // Staking Token: Mint tokens
+	console.log(`Staking Token: Minting 50 tokens for owner: '${owner}'`);        
+ 	await stakingTokenInstance.mint(owner, wei(50));
 
-    // Mint tokens
-	console.log(`Minting 500 tokens for owner: '${owner}'`);        
- 	await tokenInstance.mint(owner, wei(500));
+    // Reward Token: Add minter
+    console.log(`Reward Token: Add minter ${owner}`);
+    await rewardTokenInstance.addMinter(owner);
+
+    // Reward Token: Mint tokens
+	console.log(`Reward Token: Minting 5000 tokens for address: '${StakingDextoken.address}'`);        
+ 	await rewardTokenInstance.mint(StakingDextoken.address, wei(5000));
 
     // Mint tokens
 	if (network === 'development') {
-		console.log(`Minting tokens for all users: '${account1}'`);        
- 		await tokenInstance.mint(account1, wei(400));
- 		await tokenInstance.mint(account2, wei(300));
- 		await tokenInstance.mint(account3, wei(200));
- 		await tokenInstance.mint(account4, wei(100));
- 		await tokenInstance.mint(account5, wei(10));
+		console.log(`Staking Token: Minting tokens for all users: '${account1}'`);        
+ 		await stakingTokenInstance.mint(account1, wei(10));
+ 		await stakingTokenInstance.mint(account2, wei(20));
+ 		await stakingTokenInstance.mint(account3, wei(30));
+ 		await stakingTokenInstance.mint(account4, wei(40));
+ 		await stakingTokenInstance.mint(account5, wei(50));
 	} else if (network === 'ropsten') {
-		console.log(`Minting tokens for Ropsten users`); 
-		await tokenInstance.mint('...', wei(3000));
-		await tokenInstance.mint('...', wei(1200));       		
+		console.log(`Staking Token: Minting tokens for Ropsten users`); 
+		await stakingTokenInstance.mint('...', wei(100));
+		await stakingTokenInstance.mint('...', wei(200));       		
 	}
 
- 	// Unpause
-    console.log(`Unpausing 'StakingDextoken'`);
-    await stakingInstance.unpause();
+	await stakingContractInstance.pause(); 
+	await stakingContractInstance.unpause(); 
 
     // Set rewards
-    console.log(`Set rewards 6500`);
-    await stakingInstance.setRewards(wei(6500)); 
+    console.log(`Set setRewardPeriod(5000, ${start}, ${end})`);
+    await stakingContractInstance.setRewardPeriod(wei(5000), start, end);
+
+    // Deposit
+    console.log(`Approve`);
+    await stakingTokenInstance.approve(StakingDextoken.address, wei(10000000));
+    console.log(`Deposit`);
+    await stakingContractInstance.deposit(wei(10));
 };
