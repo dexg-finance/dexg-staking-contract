@@ -75,7 +75,10 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     function earned(address account) public view returns (uint) {
-        return _balances[account].mul(rewardPerTokenStored).div(_totalSupply).add(rewards[account]);
+        if (_balances[account] == 0) {
+            return rewards[account];
+        }
+        return _balances[account].mul(rewardPerTokenStored).div(1e18).add(rewards[account]);
     }
 
     function lastTimeRewardApplicable() public view returns (uint) {
@@ -93,7 +96,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
             return rewardPerTokenStored;
         }
         uint ticks = lastRewardTime.sub(lastUpdateTime);
-        return ticks.mul(rewardRate);
+        return ticks.mul(rewardRate).div(_totalSupply);
     }
 
     function notifyDistributeRewards() public onlyOwner nonReentrant returns (bool) {
@@ -124,8 +127,8 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _duration = end.sub(start);  
         _rewards = amount;
         lastUpdateTime = _start;  
-        lastRewardTime = _start;
-        rewardRate = _rewards.div(_duration);
+        lastRewardTime = _start.sub(1);
+        rewardRate = _rewards.mul(1e18).div(_duration);
         return true;
     }
 
@@ -157,6 +160,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         notFrozen(msg.sender) 
     {
         require(amount > 0, "deposit: cannot stake 0");
+        require(msg.sender != address(0), "withdraw: zero address");
         require(_token0.balanceOf(msg.sender) >= amount, "deposit: insufficient balance");
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         _totalSupply = _totalSupply.add(amount);  
@@ -174,10 +178,11 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         notFrozen(msg.sender) 
     {
         require(amount > 0, "withdraw: amount invalid");
+        require(msg.sender != address(0), "withdraw: zero address");
         /// Not overflow
-        require(_token0.balanceOf(address(this)) >= amount);
-        _totalSupply = _totalSupply.sub(amount);
+        require(_balances[msg.sender] >= amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
+        _totalSupply = _totalSupply.sub(amount);        
         /// Keep track user withdraws
         withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);  
         removeStakeholder(msg.sender);   

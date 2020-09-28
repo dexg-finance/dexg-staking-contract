@@ -1,14 +1,12 @@
-var StakingDextoken = artifacts.require('StakingDextoken');
-var BPT = artifacts.require('BPT');
-var Dextoken = artifacts.require('Dextoken');
-var moment = require('moment');
-var fs = require('fs');
-
-// Utils
-var decimals = '000000000000000000';
+const Web3 = require('web3');
+const StakingDextoken = artifacts.require('StakingDextoken');
+const BPT = artifacts.require('BPT');
+const Dextoken = artifacts.require('Dextoken');
+const moment = require('moment');
+const fs = require('fs');
 
 function wei(amount) {
-  return '' + amount + decimals;
+  return Web3.utils.toWei(amount.toString());
 }
 
 module.exports = async function(deployer, network, [
@@ -25,7 +23,7 @@ module.exports = async function(deployer, network, [
 
 	if (network === 'development') {
 		start = now + 10;
-		end = start + 10;
+		end = start + 60;
 	}
 
     // Deploy the BPT token Contract
@@ -44,7 +42,8 @@ module.exports = async function(deployer, network, [
     `VUE_APP_STAKING_TOKEN_ADDRESS=${BPT.address}\n` +
     `VUE_APP_REWARD_TOKEN_ADDRESS=${Dextoken.address}\n` +
     `VUE_APP_STAKING_CONTRACT_ADDRESS=${StakingDextoken.address}\n` +
-    `ACCOUNT0=${owner}\n`;
+    `ACCOUNT0=${owner}\n` +
+    `ACCOUNT1=${account1}\n`;
 
     fs.writeFileSync('.env', data);
 
@@ -84,10 +83,4 @@ module.exports = async function(deployer, network, [
     // Set rewards
     console.log(`Set setRewardPeriod(5000, ${start}, ${end})`);
     await stakingContractInstance.setRewardPeriod(wei(5000), start, end);
-
-    // Deposit
-    console.log(`Approve`);
-    await stakingTokenInstance.approve(StakingDextoken.address, wei(10000000));
-    console.log(`Deposit`);
-    await stakingContractInstance.deposit(wei(10));
 };
