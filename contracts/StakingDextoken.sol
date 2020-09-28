@@ -185,7 +185,9 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _totalSupply = _totalSupply.sub(amount);        
         /// Keep track user withdraws
         withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);  
-        removeStakeholder(msg.sender);   
+        if (_balances[msg.sender] == 0) {
+            removeStakeholder(msg.sender);   
+        }
         distributeRewards();
         _token0.safeTransfer(msg.sender, amount);
         emit TokenWithdraw(msg.sender, amount);
