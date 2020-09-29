@@ -47,7 +47,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     mapping(address => bool) public frozenAccount;
 
     /// The staking users
-    address[] internal stakeHolders;
+    mapping(address => bool) public stakeHolders;
 
     /// The amount of tokens staked
     mapping(address => uint) private _balances;        
@@ -74,11 +74,8 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _;
     }
 
-    function earned(address account) internal view returns (uint) {
-        if (_balances[account] == 0) {
-            return rewards[account];
-        }
-        return _balances[account].mul(rewardPerTokenStored).add(rewards[account]);
+    function earned(address account) internal view returns (uint) {   
+        return rewardPerTokenStored;
     }
 
     function lastTimeRewardApplicable() public view returns (uint) {
@@ -92,6 +89,12 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     function rewardPerToken() public view returns (uint) {
+        if (lastRewardTime < _start) {
+            return rewardPerTokenStored;
+        }
+        if (lastRewardTime > _end) {
+            return rewardPerTokenStored;
+        }       
         if (_totalSupply == 0) {
             return rewardPerTokenStored;
         }
@@ -99,19 +102,17 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         return ticks.mul(rewardRate).div(_totalSupply);
     }
 
-    function notifyDistributeRewards() public onlyOwner nonReentrant returns (bool) {
-        distributeRewards();
-        return true;
+    function notifyDistributeRewards() public nonReentrant returns (bool) {
+        return distributeRewards(msg.sender);
     }
 
-    function distributeRewards() internal returns (bool) {
+    function distributeRewards(address _stakeholder) internal returns (bool) {
         lastRewardTime = lastTimeRewardApplicable();
         rewardPerTokenStored = rewardPerToken();
-        for (uint i = 0; i < stakeHolders.length; i++) {
-            if (stakeHolders[i] != address(0)) { 
-                rewards[stakeHolders[i]] = earned(stakeHolders[i]);
-            }
-        }
+        ///
+        rewards[_stakeholder] = earned(_stakeholder).add(rewards[_stakeholder]);
+        rewards[address(this)] = earned(address(this)).add(rewards[address(this)]);
+
         lastUpdateTime = lastRewardTime;   
         return true;
     } 
@@ -132,24 +133,12 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         return true;
     }
 
-    function isStakeholder(address _address) public view returns(bool, uint) {
-        for (uint i = 0; i < stakeHolders.length; i++) {
-            if (_address == stakeHolders[i]) return (true, i);
-        }
-        return (false, 0);
-    }
-
     function addStakeholder(address _stakeholder) internal {
-        (bool _isStakeholder, ) = isStakeholder(_stakeholder);
-        if(!_isStakeholder) stakeHolders.push(_stakeholder);
+        stakeHolders[_stakeholder] = true;
     }
 
     function removeStakeholder(address _stakeholder) internal {
-        (bool _isStakeholder, uint s) = isStakeholder(_stakeholder);
-        if (_isStakeholder) {
-            stakeHolders[s] = stakeHolders[stakeHolders.length - 1];
-            stakeHolders.pop();
-        }
+        stakeHolders[_stakeholder] = false;
     }
 
     /// Deposit staking tokens
@@ -165,7 +154,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         _totalSupply = _totalSupply.add(amount);  
         addStakeholder(msg.sender);
-        distributeRewards();
+        distributeRewards(msg.sender);
         _token0.safeTransferFrom(msg.sender, address(this), amount);
         emit TokenDeposit(msg.sender, amount);
     }
@@ -188,7 +177,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         if (_balances[msg.sender] == 0) {
             removeStakeholder(msg.sender);   
         }
-        distributeRewards();
+        distributeRewards(msg.sender);
         _token0.safeTransfer(msg.sender, amount);
         emit TokenWithdraw(msg.sender, amount);
     }
@@ -267,7 +256,12 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
 
     /// Retrieve the stake for a stakeholder
     function rewardOf(address _stakeholder) public view returns (uint) {
-        return rewards[_stakeholder].div(1e18).div(_duration);
+        uint reward = rewards[_stakeholder];
+        /// staking over all time
+        if (stakeHolders[_stakeholder] == true && reward == 0) {
+            reward = rewards[address(this)];
+        }
+        return _balances[_stakeholder].mul(reward).div(1e18).div(_duration);
     }
 
     /// The stakes of all stakeholders

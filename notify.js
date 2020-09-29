@@ -15,7 +15,6 @@ const stakingContract = process.env.VUE_APP_STAKING_CONTRACT_ADDRESS;
 const stakingToken = process.env.VUE_APP_STAKING_TOKEN_ADDRESS;
 const owner = process.env.ACCOUNT0;
 const account1 = process.env.ACCOUNT1;
-const account = owner;
 
 function toWei(amount) {
   return Web3.utils.toWei(amount.toString());
@@ -37,21 +36,27 @@ async function start() {
     console.log(`owner: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: owner});
     console.log(`owner: Deposit`);
-    await stakingContractInstance.deposit(toWei(125.837465), {from: owner});	
+    await stakingContractInstance.deposit(toWei(1), {from: owner});	
 
     console.log(`account1: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: account1});
     console.log(`account1: Deposit`);
-    await stakingContractInstance.deposit(toWei(0.912837), {from: account1});
+    await stakingContractInstance.deposit(toWei(1), {from: account1});
 
 	setInterval(async() => {
 		console.log(`Notify... StakingDextoken::distributeRewards()`)
 		await stakingContractInstance.notifyDistributeRewards({from: owner});
 
-		let stakeOf = await stakingContractInstance.stakeOf(account, {from: owner});
-		console.log(`stakeOf... ${stakeOf}`);
+		console.log(`Notify... StakingDextoken::distributeRewards()`)
+		await stakingContractInstance.notifyDistributeRewards({from: account1});
 
-		let rewards1 = await stakingContractInstance.rewardOf(account, {from: owner});
+		let stakeOf1 = await stakingContractInstance.stakeOf(owner, {from: owner});
+		console.log(`stakeOf owner... ${stakeOf1}`);
+
+		let stakeOf2 = await stakingContractInstance.stakeOf(account1, {from: account1});
+		console.log(`stakeOf account1... ${stakeOf2}`);
+
+		let rewards1 = await stakingContractInstance.rewardOf(owner, {from: owner});
 		console.log(`rewardOf owner... ${fromWei(rewards1)}`);
 
 		let rewards2 = await stakingContractInstance.rewardOf(account1, {from: account1});
@@ -61,10 +66,10 @@ async function start() {
 
 		console.log(`reward issued... ${issued}`);
 
-		if (parseFloat(fromWei(stakeOf)) > 0) {
-	    	console.log(`account1: unstake`);
-	    	await stakingContractInstance.withdraw(toWei(5.12), {from: owner});		
-		}
+		//if (parseFloat(fromWei(stakeOf)) > 0) {
+	    //	console.log(`account1: unstake`);
+	    //	await stakingContractInstance.withdraw(toWei(0.1), {from: owner});		
+		//}
 
 		//if (parseFloat(fromWei(stakeOf)) <= 10) {
 	    //	console.log(`account1: stake`);
