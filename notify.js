@@ -36,12 +36,21 @@ async function start() {
     console.log(`owner: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: owner});
     console.log(`owner: Deposit`);
-    await stakingContractInstance.deposit(toWei(1), {from: owner});	
+    await stakingContractInstance.deposit(toWei('16'), {from: owner});	
 
     console.log(`account1: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: account1});
     console.log(`account1: Deposit`);
-    await stakingContractInstance.deposit(toWei(1), {from: account1});
+    await stakingContractInstance.deposit(toWei('16'), {from: account1});
+
+		console.log(`Notify... StakingDextoken::distributeRewards()`)
+		await stakingContractInstance.notifyDistributeRewards({from: owner});
+
+		console.log(`Notify... StakingDextoken::distributeRewards()`)
+		await stakingContractInstance.notifyDistributeRewards({from: account1});
+
+	    	console.log(`account1: stake`);
+	    	await stakingContractInstance.deposit(toWei(10), {from: owner});
 
 	setInterval(async() => {
 		console.log(`Notify... StakingDextoken::distributeRewards()`)
@@ -66,15 +75,10 @@ async function start() {
 
 		console.log(`reward issued... ${issued}`);
 
-		//if (parseFloat(fromWei(stakeOf)) > 0) {
-	    //	console.log(`account1: unstake`);
-	    //	await stakingContractInstance.withdraw(toWei(0.1), {from: owner});		
-		//}
-
-		//if (parseFloat(fromWei(stakeOf)) <= 10) {
-	    //	console.log(`account1: stake`);
-	    //	await stakingContractInstance.deposit(toWei(10), {from: owner});		
-		//}		
+		if (parseFloat(fromWei(stakeOf1)) > 0) {
+	    	console.log(`account1: unstake`);
+	    	await stakingContractInstance.withdraw(toWei(1), {from: owner});		
+		}	
 	}, 10000);
 }
 
