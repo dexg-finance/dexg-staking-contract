@@ -74,7 +74,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _;
     }
 
-    function earned(address account) public view returns (uint) {
+    function earned(address account) internal view returns (uint) {
         if (_balances[account] == 0) {
             return rewards[account];
         }
