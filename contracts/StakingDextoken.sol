@@ -50,10 +50,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     mapping(address => bool) public stakeHolders;
 
     /// The amount of tokens staked
-    mapping(address => uint) private _balances;        
-
-    /// The total stake shares of all stakeholders
-    mapping(address => uint) internal totalShares;
+    mapping(address => uint) private _balances;
 
     /// The remaining withdrawals of staked tokens
     mapping(address => uint) internal withdrawalOf;  
