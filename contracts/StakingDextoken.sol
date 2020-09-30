@@ -86,7 +86,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     function notifyDistributeRewards() public nonReentrant {
         lastUpdateTime[msg.sender] = Math.min(block.timestamp, _end);
         lastUpdateTime[address(this)] = Math.min(block.timestamp, _end);
-        distributeRewards(msg.sender);               
+        distributeRewards(msg.sender);              
     }
 
     function distributeRewards(address _stakeholder) internal returns (bool) {
@@ -94,6 +94,9 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
             return false;
         }
         // staking not started
+        if (lastRewardTime[_stakeholder] < _start)  {
+            return false;
+        }
         if (lastUpdateTime[_stakeholder] <=  lastRewardTime[_stakeholder]) {
             return false;
         }
