@@ -109,11 +109,13 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     function setRewardPeriod(uint amount, uint start, uint end) external onlyOwner returns (bool) {
+        require(block.timestamp > _end, "setRewardPeriod: can not override current stake");
         require(block.timestamp < start, "setRewardPeriod: can not override start");
         require(start < end, "DEXToken: invalid end time");
         require(amount > 0, "setRewards: invalid amount");
-        // `amount` should be equal to the amount of tokens that are intended for reward
-        require(_token1.balanceOf(address(this)) == amount, "setRewards: insufficient reward balance");
+        // `amount` should be equal to or greater than the amount of tokens 
+        // that are intended for reward. Stakers may keep their rewarded tokens in the contract.
+        require(_token1.balanceOf(address(this)) >= amount, "setRewards: insufficient reward balance");
         _start = start;   
         _end = end;  
         _duration = end.sub(start);  
