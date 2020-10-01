@@ -13,9 +13,11 @@ stakingTokenRegistry.setProvider(provider);
 
 const stakingContract = process.env.VUE_APP_STAKING_CONTRACT_ADDRESS;
 const stakingToken = process.env.VUE_APP_STAKING_TOKEN_ADDRESS;
-const owner = process.env.ACCOUNT0;
-const account1 = process.env.ACCOUNT1;
-const account2 = process.env.ACCOUNT2;
+const account = [
+	process.env.ACCOUNT0, 
+	process.env.ACCOUNT1, 
+	process.env.ACCOUNT2
+];
 
 function toWei(amount) {
   return Web3.utils.toWei(amount.toString());
@@ -25,13 +27,21 @@ function fromWei(amount) {
   return Web3.utils.fromWei(amount.toString());
 }
 
+const id = parseInt(process.argv[2]);
+const amount = parseFloat(process.argv[3]);
+
 async function start() {
 	const stakingContractInstance = await stakingContractRegistry.at(stakingContract);
 	const stakingTokenInstance = await stakingTokenRegistry.at(stakingToken);
 
-    // Set rewards
-    console.log(`Set setRewardPeriod(5000)`);
-    await stakingContractInstance.notifyRewardAmount(toWei(5000), {from: owner});
+    // Deposit: owner
+    console.log(`account${id}: Approve`);
+    await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: account[id]});
+
+	console.log(`account${id}: stake ${amount}`);
+	await stakingContractInstance.deposit(toWei(amount), {from: account[id]});
+
+	return;
 }
 
 start();

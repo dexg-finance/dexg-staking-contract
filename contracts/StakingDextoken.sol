@@ -18,19 +18,21 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     event TokenDeposit(address account, uint amount);
     event TokenWithdraw(address account, uint amount);
     event TokenClaim(address account, uint amount);
+    event RewardAdded(uint reward);
 
+    uint public periodFinish = 0;
     uint public rewardRate = 0;
+    uint public lastUpdateTime;
+    uint public rewardPerTokenStored;
+
+    // 
+    address public beneficial;
 
     // User award balance
     mapping(address => uint) public rewards;
     mapping(address => uint) public userRewardPerTokenPaid;
-    mapping(address => uint) public lastRewardTime;
-    mapping(address => uint) public lastUpdateTime;
-    mapping(address => uint) public rewardPerTokenStored;
 
-    uint private _start;
-    uint private _end;
-    uint private _duration;
+    uint public constant DURATION = 1 minutes;
 
     /// Staking token
     IERC20 private _token0;
@@ -71,60 +73,73 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         _;
     }
 
-    function earned(address account) internal view returns (uint) {   
-        return rewardPerTokenStored[account];
+    modifier updateReward(address account) {
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = lastTimeRewardApplicable();
+        if (account != address(0)) {
+            rewards[account] = earned(account);
+            userRewardPerTokenPaid[account] = rewardPerTokenStored;
+        }
+        _;
     }
 
-    function rewardPerToken(address _stakeholder) public view returns (uint) {     
-        if (_totalSupply == 0) {
-            return rewardPerTokenStored[_stakeholder];
-        }
-        uint ticks = lastUpdateTime[_stakeholder].sub(lastRewardTime[_stakeholder]);
-        return ticks.mul(rewardRate).div(_totalSupply);
+    /// BAL tokens and any other token
+    function seize(address _token, uint amount) onlyOwner external {
+        require(_token != address(_token0), "seize: can not seize staking tokens");
+        require(_token != address(_token1), "seize: can not seize reward tokens");
+
+        IERC20(_token).safeTransfer(beneficial, amount);
+    }
+    
+    function balanceOf(address account) public view returns (uint256) {
+        return _balances[account];
     }
 
-    function notifyDistributeRewards() public nonReentrant {
-        lastUpdateTime[msg.sender] = Math.min(block.timestamp, _end);
-        lastUpdateTime[address(this)] = Math.min(block.timestamp, _end);
-        distributeRewards(msg.sender);              
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
+    }    
+
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return Math.min(block.timestamp, periodFinish);
     }
 
-    function distributeRewards(address _stakeholder) internal returns (bool) {
-        if (lastRewardTime[_stakeholder] >= _end)  {
-            return false;
+    function rewardPerToken() public view returns (uint256) {
+        if (totalSupply() == 0) {
+            return rewardPerTokenStored;
         }
-        // staking not started
-        if (lastRewardTime[_stakeholder] < _start)  {
-            return false;
-        }
-        if (lastUpdateTime[_stakeholder] <  lastRewardTime[_stakeholder]) {
-            return false;
-        }
-        rewardPerTokenStored[_stakeholder] = rewardPerToken(_stakeholder);
-        rewardPerTokenStored[address(this)] = rewardPerToken(address(this));
-
-        rewards[_stakeholder] = earned(_stakeholder).mul(_balances[_stakeholder]).add(rewards[_stakeholder]);
-        rewards[address(this)] = earned(address(this)).add(rewards[address(this)]);
-
-        lastRewardTime[_stakeholder] = lastUpdateTime[_stakeholder];
-        lastRewardTime[address(this)] = lastUpdateTime[address(this)];
-        return true;
+        return
+            rewardPerTokenStored.add(
+                lastTimeRewardApplicable()
+                    .sub(lastUpdateTime)
+                    .mul(rewardRate)
+                    .mul(1e18)
+                    .div(totalSupply())
+            );
     }
 
-    function setRewardPeriod(uint amount, uint start, uint end) external onlyOwner returns (bool) {
-        require(block.timestamp > _end, "setRewardPeriod: can not override current stake");
-        require(block.timestamp < start, "setRewardPeriod: can not override start");
-        require(start < end, "DEXToken: invalid end time");
-        require(amount > 0, "setRewards: invalid amount");
-        // `amount` should be equal to or greater than the amount of tokens 
-        // that are intended for reward. Stakers may keep their rewarded tokens in the contract.
-        require(_token1.balanceOf(address(this)) >= amount, "setRewards: insufficient reward balance");
-        _start = start;   
-        _end = end;  
-        _duration = end.sub(start);  
-        _rewards = amount;
-        rewardRate = _rewards.mul(1e18);
-        return true;
+    function earned(address account) public view returns (uint256) {
+        return
+            balanceOf(account)
+                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
+                .div(1e18)
+                .add(rewards[account]);
+    }
+
+    function notifyRewardAmount(uint256 reward)
+        external
+        onlyOwner
+        updateReward(address(0))
+    {
+        if (block.timestamp >= periodFinish) {
+            rewardRate = reward.div(DURATION);
+        } else {
+            uint256 remaining = periodFinish.sub(block.timestamp);
+            uint256 leftover = remaining.mul(rewardRate);
+            rewardRate = reward.add(leftover).div(DURATION);
+        }
+        lastUpdateTime = block.timestamp;
+        periodFinish = block.timestamp.add(DURATION);
+        emit RewardAdded(reward);
     }
 
     function addStakeholder(address _stakeholder) internal {
@@ -141,17 +156,14 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         nonReentrant
         whenNotPaused 
         notFrozen(msg.sender) 
+        updateReward(msg.sender)
     {
-        require(block.timestamp <= _end, "deposit: staking ends");
         require(amount > 0, "deposit: cannot stake 0");
         require(msg.sender != address(0), "withdraw: zero address");
         require(_token0.balanceOf(msg.sender) >= amount, "deposit: insufficient balance");
+        _totalSupply = _totalSupply.add(amount);          
         _balances[msg.sender] = _balances[msg.sender].add(amount);
-        _totalSupply = _totalSupply.add(amount);  
         addStakeholder(msg.sender);
-        lastRewardTime[msg.sender] = Math.max(block.timestamp, _start);
-        lastRewardTime[address(this)] = Math.max(block.timestamp, _start);    
-        distributeRewards(msg.sender);
         _token0.safeTransferFrom(msg.sender, address(this), amount);
         emit TokenDeposit(msg.sender, amount);
     }
@@ -162,44 +174,41 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         nonReentrant
         whenNotPaused 
         notFrozen(msg.sender) 
+        updateReward(msg.sender)
     {
         require(amount > 0, "withdraw: amount invalid");
         require(msg.sender != address(0), "withdraw: zero address");
         /// Not overflow
         require(_balances[msg.sender] >= amount);
+        _totalSupply = _totalSupply.sub(amount);                
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        _totalSupply = _totalSupply.sub(amount);        
         /// Keep track user withdraws
         withdrawalOf[msg.sender] = withdrawalOf[msg.sender].add(amount);  
         if (_balances[msg.sender] == 0) {
             removeStakeholder(msg.sender);   
         }
-        /// staking not started
-        lastUpdateTime[msg.sender] = Math.max(Math.min(block.timestamp, _end), _start);
-        lastUpdateTime[address(this)] = Math.max(Math.min(block.timestamp, _end), _start);
-        distributeRewards(msg.sender);
         _token0.safeTransfer(msg.sender, amount);
         emit TokenWithdraw(msg.sender, amount);
     }
 
     /// Claim reward tokens
-    function claim(uint amount) 
+    function claim() 
         external 
         nonReentrant
         whenNotPaused 
         notFrozen(msg.sender) 
+        updateReward(msg.sender)
     {
-        require(amount > 0, "withdraw: amount invalid");
-        require(block.timestamp > _end, "claim: staking not ended");        
-        /// Not overflow
-        require(_token1.balanceOf(address(this)) >= amount, "claim: insufficient balance");
-        ///
-        uint remaining = rewardOf(msg.sender).sub(claimOf[msg.sender]);
-        require(remaining >= amount, "claim: invalid amount");
-        /// Keep track user withdraws
-        claimOf[msg.sender] = claimOf[msg.sender].add(amount);  
-        _token1.safeTransfer(msg.sender, amount);
-        emit TokenClaim(msg.sender, amount);
+        require(block.timestamp > getEndTimestamp(), "claim: staking not ended");        
+        uint reward = earned(msg.sender);
+        /// Not overflow        
+        require(_token1.balanceOf(address(this)) >= reward, "claim: insufficient balance");        
+        if (reward > 0) {
+            rewards[msg.sender] = 0;
+            claimOf[msg.sender] = reward;  
+            _token1.safeTransfer(msg.sender, reward);
+            emit TokenClaim(msg.sender, reward);
+        } 
     }
 
     function freezeAccount(address account) external onlyOwner returns (bool) {
@@ -216,10 +225,6 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         return true;
     }
 
-    function getRewards() external view returns (uint) {
-        return _rewards;
-    }
-
     function getWithdrawalOf(address _stakeholder) external view returns (uint) {
         return withdrawalOf[_stakeholder];
     }
@@ -228,25 +233,16 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         return claimOf[_stakeholder];
     }
 
-    function getDuration() external view returns (uint) {
-        return _duration;
+    function getStartTimestamp() public view returns (uint) {
+        return periodFinish - DURATION;
     }
 
-    function getStartTimestamp() external view returns (uint) {
-        return _start;
-    }
-
-    function getEndTimestamp() external view returns (uint) {
-        return _end;
+    function getEndTimestamp() public view returns (uint) {
+        return periodFinish;
     }
 
     /// Get remaining rewards of the time period
     function remainingRewards() external view returns(uint) {
-        require(block.timestamp >= _start, "staking not open");
-        require(block.timestamp <= _end, "staking ended");
-        (uint _total) = totalRewards();
-        (uint _currentDuration) = _end.sub(block.timestamp);
-        return _total.mul(_currentDuration).div(_duration);
     }
 
     /// Retrieve the stake for a stakeholder
@@ -256,12 +252,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
 
     /// Retrieve the stake for a stakeholder
     function rewardOf(address _stakeholder) public view returns (uint) {
-        uint reward = rewards[_stakeholder];
-        /// staking over all time
-        if (stakeHolders[_stakeholder] == true && reward == 0) {
-            reward = _balances[_stakeholder].mul(rewards[address(this)]);
-        }
-        return reward.div(1e18).div(_duration);
+        return earned(_stakeholder);
     }
 
     /// The stakes of all stakeholders

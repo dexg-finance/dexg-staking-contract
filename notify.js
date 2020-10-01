@@ -46,17 +46,14 @@ async function start() {
     await stakingContractInstance.deposit(toWei('500'), {from: account2});
 
 	setInterval(async() => {
-		//await stakingContractInstance.notifyDistributeRewards({from: owner});
-
-		// 
 		let totalRewards = await stakingContractInstance.totalRewards({from: owner});
-		console.log(`totalRewards... ${totalRewards}`);
+		console.log(`totalRewards... ${fromWei(totalRewards)}`);
 
 		let stakeOf1 = await stakingContractInstance.stakeOf(owner, {from: owner});
-		console.log(`stakeOf owner... ${stakeOf1}`);
+		console.log(`stakeOf owner... ${fromWei(stakeOf1)}`);
 
 		let stakeOf2 = await stakingContractInstance.stakeOf(account1, {from: account1});
-		console.log(`stakeOf account1... ${stakeOf2}`);
+		console.log(`stakeOf account1... ${fromWei(stakeOf2)}`);
 
 		let rewards1 = await stakingContractInstance.rewardOf(owner, {from: owner});
 		console.log(`rewardOf owner... ${fromWei(rewards1)}`);

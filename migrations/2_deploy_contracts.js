@@ -80,8 +80,4 @@ module.exports = async function(deployer, network, [
 
 	await stakingContractInstance.pause(); 
 	await stakingContractInstance.unpause(); 
-
-    // Set rewards
-    console.log(`Set setRewardPeriod(5000, ${start}, ${end})`);
-    await stakingContractInstance.setRewardPeriod(wei(5000), start, end);
 };
