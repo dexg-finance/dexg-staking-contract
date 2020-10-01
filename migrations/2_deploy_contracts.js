@@ -23,7 +23,7 @@ module.exports = async function(deployer, network, [
 
 	if (network === 'development') {
 		start = now + 10;
-		end = start + 10;
+		end = start + 60;
 	}
 
     // Deploy the BPT token Contract
@@ -43,7 +43,8 @@ module.exports = async function(deployer, network, [
     `VUE_APP_REWARD_TOKEN_ADDRESS=${Dextoken.address}\n` +
     `VUE_APP_STAKING_CONTRACT_ADDRESS=${StakingDextoken.address}\n` +
     `ACCOUNT0=${owner}\n` +
-    `ACCOUNT1=${account1}\n`;
+    `ACCOUNT1=${account1}\n` +
+    `ACCOUNT2=${account2}\n`;
 
     fs.writeFileSync('.env', data);
 
@@ -53,7 +54,7 @@ module.exports = async function(deployer, network, [
 
     // Staking Token: Mint tokens
 	console.log(`Staking Token: Minting 50 tokens for owner: '${owner}'`);        
- 	await stakingTokenInstance.mint(owner, wei(500));
+ 	await stakingTokenInstance.mint(owner, wei(1000));
 
     // Reward Token: Add minter
     console.log(`Reward Token: Add minter ${owner}`);
@@ -61,16 +62,16 @@ module.exports = async function(deployer, network, [
 
     // Reward Token: Mint tokens
 	console.log(`Reward Token: Minting 5000 tokens for address: '${StakingDextoken.address}'`);        
- 	await rewardTokenInstance.mint(StakingDextoken.address, wei(5000));
+ 	await rewardTokenInstance.mint(StakingDextoken.address, wei(10000));
 
     // Mint tokens
 	if (network === 'development') {
 		console.log(`Staking Token: Minting tokens for all users: '${account1}'`);        
- 		await stakingTokenInstance.mint(account1, wei(500));
- 		await stakingTokenInstance.mint(account2, wei(500));
- 		await stakingTokenInstance.mint(account3, wei(500));
- 		await stakingTokenInstance.mint(account4, wei(500));
- 		await stakingTokenInstance.mint(account5, wei(500));
+ 		await stakingTokenInstance.mint(account1, wei(1000));
+ 		await stakingTokenInstance.mint(account2, wei(1000));
+ 		await stakingTokenInstance.mint(account3, wei(1000));
+ 		await stakingTokenInstance.mint(account4, wei(1000));
+ 		await stakingTokenInstance.mint(account5, wei(1000));
 	} else if (network === 'ropsten') {
 		console.log(`Staking Token: Minting tokens for Ropsten users`); 
 		await stakingTokenInstance.mint('...', wei(100));

@@ -97,7 +97,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         if (lastRewardTime[_stakeholder] < _start)  {
             return false;
         }
-        if (lastUpdateTime[_stakeholder] <=  lastRewardTime[_stakeholder]) {
+        if (lastUpdateTime[_stakeholder] <  lastRewardTime[_stakeholder]) {
             return false;
         }
         rewardPerTokenStored[_stakeholder] = rewardPerToken(_stakeholder);
@@ -174,8 +174,9 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         if (_balances[msg.sender] == 0) {
             removeStakeholder(msg.sender);   
         }
-        lastUpdateTime[msg.sender] = Math.min(block.timestamp, _end);
-        lastUpdateTime[address(this)] = Math.min(block.timestamp, _end);
+        /// staking not started
+        lastUpdateTime[msg.sender] = Math.max(Math.min(block.timestamp, _end), _start);
+        lastUpdateTime[address(this)] = Math.max(Math.min(block.timestamp, _end), _start);
         distributeRewards(msg.sender);
         _token0.safeTransfer(msg.sender, amount);
         emit TokenWithdraw(msg.sender, amount);

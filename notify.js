@@ -15,6 +15,7 @@ const stakingContract = process.env.VUE_APP_STAKING_CONTRACT_ADDRESS;
 const stakingToken = process.env.VUE_APP_STAKING_TOKEN_ADDRESS;
 const owner = process.env.ACCOUNT0;
 const account1 = process.env.ACCOUNT1;
+const account2 = process.env.ACCOUNT2;
 
 function toWei(amount) {
   return Web3.utils.toWei(amount.toString());
@@ -28,36 +29,28 @@ async function start() {
 	const stakingContractInstance = await stakingContractRegistry.at(stakingContract);
 	const stakingTokenInstance = await stakingTokenRegistry.at(stakingToken);
 
-	// 
-	let totalRewards = await stakingContractInstance.totalRewards({from: owner});
-	console.log(`totalRewards... ${totalRewards}`);
-
     // Deposit: owner
     console.log(`owner: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: owner});
     console.log(`owner: Deposit`);
-    await stakingContractInstance.deposit(toWei('16'), {from: owner});	
+    await stakingContractInstance.deposit(toWei('500'), {from: owner});	
 
     console.log(`account1: Approve`);
     await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: account1});
     console.log(`account1: Deposit`);
-    await stakingContractInstance.deposit(toWei('16'), {from: account1});
+    await stakingContractInstance.deposit(toWei('500'), {from: account1});
 
-		console.log(`Notify... StakingDextoken::distributeRewards()`)
-		await stakingContractInstance.notifyDistributeRewards({from: owner});
-
-		console.log(`Notify... StakingDextoken::distributeRewards()`)
-		await stakingContractInstance.notifyDistributeRewards({from: account1});
-
-	    	console.log(`account1: stake`);
-	    	await stakingContractInstance.deposit(toWei(10), {from: owner});
+    console.log(`account2: Approve`);
+    await stakingTokenInstance.approve(stakingContract, toWei(10000000), {from: account2});
+    console.log(`account2: Deposit`);
+    await stakingContractInstance.deposit(toWei('500'), {from: account2});
 
 	setInterval(async() => {
-		console.log(`Notify... StakingDextoken::distributeRewards()`)
-		await stakingContractInstance.notifyDistributeRewards({from: owner});
+		//await stakingContractInstance.notifyDistributeRewards({from: owner});
 
-		console.log(`Notify... StakingDextoken::distributeRewards()`)
-		await stakingContractInstance.notifyDistributeRewards({from: account1});
+		// 
+		let totalRewards = await stakingContractInstance.totalRewards({from: owner});
+		console.log(`totalRewards... ${totalRewards}`);
 
 		let stakeOf1 = await stakingContractInstance.stakeOf(owner, {from: owner});
 		console.log(`stakeOf owner... ${stakeOf1}`);
@@ -71,14 +64,12 @@ async function start() {
 		let rewards2 = await stakingContractInstance.rewardOf(account1, {from: account1});
 		console.log(`rewardOf account1... ${fromWei(rewards2)}`);
 
-		let issued = parseFloat(fromWei(rewards1))+parseFloat(fromWei(rewards2));
+		let rewards3 = await stakingContractInstance.rewardOf(account2, {from: account2});
+		console.log(`rewardOf account2... ${fromWei(rewards3)}`);
 
-		console.log(`reward issued... ${issued}`);
+		let issued = parseFloat(fromWei(rewards1))+parseFloat(fromWei(rewards2))+parseFloat(fromWei(rewards3));
 
-		if (parseFloat(fromWei(stakeOf1)) > 0) {
-	    	console.log(`account1: unstake`);
-	    	await stakingContractInstance.withdraw(toWei(1), {from: owner});		
-		}	
+		console.log(`reward issued... ${issued}`);	
 	}, 10000);
 }
 
