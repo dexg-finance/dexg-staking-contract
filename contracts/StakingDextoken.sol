@@ -19,11 +19,13 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     event TokenWithdraw(address account, uint amount);
     event TokenClaim(address account, uint amount);
     event RewardAdded(uint reward);
+    event RewardUpdated();
 
     uint public periodFinish = 0;
     uint public rewardRate = 0;
     uint public lastUpdateTime;
-    uint public rewardPerTokenStored;
+    uint public rewardPerTokenStored = 0;
+    bool public stakingStarted = false;
 
     // 
     address public beneficial;
@@ -32,7 +34,9 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     mapping(address => uint) public rewards;
     mapping(address => uint) public userRewardPerTokenPaid;
 
-    uint public constant DURATION = 1 minutes;
+    uint public DURATION;
+    uint private _start;
+    uint private _end;
 
     /// Staking token
     IERC20 private _token0;
@@ -42,6 +46,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
 
     /// Total rewards
     uint private _rewards;
+    uint private _remainingRewards;
 
     /// Total amount of user staking tokens
     uint private _totalSupply;
@@ -84,9 +89,9 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     /// BAL tokens and any other token
-    function seize(address _token, uint amount) onlyOwner external {
-        require(_token != address(_token0), "seize: can not seize staking tokens");
-        require(_token != address(_token1), "seize: can not seize reward tokens");
+    function capture(address _token, uint amount) onlyOwner external {
+        require(_token != address(_token0), "capture: can not capture staking tokens");
+        require(_token != address(_token1), "capture: can not capture reward tokens");
 
         IERC20(_token).safeTransfer(beneficial, amount);
     }
@@ -125,21 +130,55 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
                 .add(rewards[account]);
     }
 
-    function notifyRewardAmount(uint256 reward)
+    function setStakingRound(uint round, uint reward, uint start, uint end) 
+        external
+        onlyOwner    
+    {
+        stakingStarted= false;
+
+        // staking already starts
+        if (periodFinish > 0) {
+            return;
+        }
+
+        // start a new staking round
+        periodFinish = 0;
+        lastUpdateTime = 0;
+        _remainingRewards = 0;
+        rewardRate = 0;
+
+        _rewards = reward;        
+        _start = start;
+        _end = end;
+        DURATION = _end.sub(_start);
+        stakingStarted= true;
+    }
+
+    function notifyStakingRewards(uint round)
         external
         onlyOwner
         updateReward(address(0))
     {
+        if (!stakingStarted) {
+            return;
+        }
+
+        if (block.timestamp < _start) {
+            return;
+        }
+
         if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(DURATION);
+            rewardRate = _rewards.div(DURATION);
+            stakingStarted = false;
         } else {
-            uint256 remaining = periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(DURATION);
+            uint remaining = periodFinish.sub(block.timestamp);
+            uint leftover = remaining.mul(rewardRate);
+            rewardRate = _rewards.add(leftover).div(DURATION);
+            _remainingRewards = leftover;
         }
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(DURATION);
-        emit RewardAdded(reward);
+        emit RewardAdded(_rewards);
     }
 
     function addStakeholder(address _stakeholder) internal {
@@ -234,15 +273,16 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     function getStartTimestamp() public view returns (uint) {
-        return periodFinish - DURATION;
+        return _start;
     }
 
     function getEndTimestamp() public view returns (uint) {
-        return periodFinish;
+        return _end;
     }
 
     /// Get remaining rewards of the time period
     function remainingRewards() external view returns(uint) {
+        return _remainingRewards;
     }
 
     /// Retrieve the stake for a stakeholder
