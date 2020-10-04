@@ -30,15 +30,15 @@ Compile this project:
 $ truffle compile
 ```
 
-Run the migrations:
+# Deploy & Test
+
+1. Run the migrations:
 
 ```
 $ truffle migrate --reset
 ```
 
-# Deploy & Test
-
-1. Open the `setRewardRound.js` file and modify the pre-defined `start` and `end` timestamps. In the following example, the staking period is 60 seconds.
+2. Open the `setRewardRound.js` file and modify the pre-defined `start` and `end` timestamps. In the following example, the staking period is 60 seconds.
 
 ```
 async function start() {
@@ -58,13 +58,13 @@ async function start() {
 * `start`: staking starts
 * `end`: staking ends
 
-2. Run `setRewardRound.js` to initialize the staking round.
+3. Run `setRewardRound.js` to initialize the staking round.
 
 ```
 $ node setRewardRound.js
 ```
 
-3. Run `notifyRewards.js` to start the staking round and update views.
+4. Run `notifyRewards.js` to start the staking round and update views.
 
 ```
 $ node notifyRewards.js
