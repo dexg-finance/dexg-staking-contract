@@ -33,43 +33,41 @@ $ truffle compile
 Run the migrations:
 
 ```
-$ truffle migrate
+$ truffle migrate --reset
 ```
 
-To test project contracts, open a new terminal and run the following to start a local Ethereum client:
+# Deploy & Test
+
+1. Open the `setRewardRound.js` file and modify the pre-defined `start` and `end` timestamps. In the following example, the staking period is 60 seconds.
 
 ```
-$ truffle develop
-```
+async function start() {
+	const stakingContractInstance = await stakingContractRegistry.at(stakingContract);
+	const stakingTokenInstance = await stakingTokenRegistry.at(stakingToken);
 
-In the previous terminal, run the following to test contracts:
+	// use UTC+0 time zone
+	let now = moment.utc().unix();
+	let start = now + 60;
+	let end = start + 60;
 
-```
-$ truffle test
-```
-
-# Deploy
-
-1. Open the `migrations/2_deploy_contracts.js` file and modify the pre-defined `start` and `end` timestamps. In the following example, the staking period is 60 seconds.
-
-```
-module.exports = function(deployer) {
-	var start = 1600163700;
-	var end = start + 60;
-
-	deployer.deploy(Dextoken).then(() => {
-		return deployer.deploy(StakingDextoken, Dextoken.address, start, end);
-	})
-};
+	console.log(`setStakingRound ${start} ${end}`);
+	await stakingContractInstance.setRewardRound(1, toWei(1000), start, end, {from: owner});
+}
 ```
 
 * `start`: staking starts
 * `end`: staking ends
 
-2. Migrate contracts:
+2. Run `setRewardRound.js` to initialize the staking round.
 
 ```
-$ truffle migrate
+$ node setRewardRound.js
+```
+
+3. Run `notifyRewards.js` to start the staking round and update views.
+
+```
+$ node notifyRewards.js
 ```
 
 # License
