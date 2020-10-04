@@ -58,7 +58,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     mapping(address => bool) public stakeHolders;
 
     /// The amount of tokens staked
-    mapping(address => uint) private _balances;
+    mapping(address => uint) private _balances = address(this);
 
     /// The remaining withdrawals of staked tokens
     mapping(address => uint) internal withdrawalOf;  
@@ -90,6 +90,8 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     function setBeneficial(address _beneficial) onlyOwner external {
+        require(_beneficial != address(this), "setBeneficial: can not send to self");
+        require(_beneficial != address(0), "setBeneficial: can not burn tokens");
         beneficial = _beneficial;
     }
 
@@ -97,23 +99,16 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     function capture(address _token, uint amount) onlyOwner external {
         require(_token != address(_token0), "capture: can not capture staking tokens");
         require(_token != address(_token1), "capture: can not capture reward tokens");
-
+        require(_beneficial != address(this), "capture: can not send to self");
+        require(_beneficial != address(0), "capture: can not burn tokens");
         IERC20(_token).safeTransfer(beneficial, amount);
-    }
-    
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
-    }
+    }  
 
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }    
-
-    function lastTimeRewardApplicable() public view returns (uint256) {
+    function lastTimeRewardApplicable() public view returns (uint) {
         return Math.min(block.timestamp, periodFinish);
     }
 
-    function rewardPerToken() public view returns (uint256) {
+    function rewardPerToken() public view returns (uint) {
         if (totalSupply() == 0) {
             return rewardPerTokenStored;
         }
@@ -127,7 +122,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
             );
     }
 
-    function earned(address account) public view returns (uint256) {
+    function earned(address account) public view returns (uint) {
         return
             balanceOf(account)
                 .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
@@ -265,6 +260,18 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         emit Unfreeze(account);
         return true;
     }
+
+    function getStakeholders() public view returns (uint) {
+        return stakeHolders[_stakeholder].length;
+    }
+
+    function balanceOf(address account) public view returns (uint) {
+        return _balances[account];
+    }
+
+    function totalSupply() public view returns (uint) {
+        return _totalSupply;
+    }  
 
     function getWithdrawalOf(address _stakeholder) public view returns (uint) {
         return withdrawalOf[_stakeholder];
