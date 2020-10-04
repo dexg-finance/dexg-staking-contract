@@ -29,7 +29,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     uint public rewardsDuration = 0;
     bool public inStaking = true;
 
-    // 
+    // BAL beneficial address
     address public beneficial;
 
     // User award balance
@@ -87,6 +87,10 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
         }
         _;
+    }
+
+    function setBeneficial(address _beneficial) onlyOwner external {
+        beneficial = _beneficial;
     }
 
     /// BAL tokens and any other token
@@ -262,11 +266,11 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         return true;
     }
 
-    function getWithdrawalOf(address _stakeholder) external view returns (uint) {
+    function getWithdrawalOf(address _stakeholder) public view returns (uint) {
         return withdrawalOf[_stakeholder];
     }
 
-    function getClaimOf(address _stakeholder) external view returns (uint) {
+    function getClaimOf(address _stakeholder) public view returns (uint) {
         return claimOf[_stakeholder];
     }
 
@@ -279,7 +283,7 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     }
 
     /// Get remaining rewards of the time period
-    function remainingRewards() external view returns(uint) {
+    function remainingRewards() public view returns(uint) {
         return _remainingRewards;
     }
 
