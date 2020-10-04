@@ -30,19 +30,11 @@ async function start() {
 	const stakingContractInstance = await stakingContractRegistry.at(stakingContract);
 	const stakingTokenInstance = await stakingTokenRegistry.at(stakingToken);
 
-	// use UTC+0 time zone
-	let now = moment.utc().unix();
-	let start = now + 10;
-	let end = start + 30;
-
-	console.log(`setStakingRound ${start} ${end}`);
-	await stakingContractInstance.setStakingRound(1, toWei(5000), start, end, {from: owner});
-
-    // Set rewards
-    setInterval(async() => {
-    	console.log(`Set notifyStakingRewards`);
-    	await stakingContractInstance.notifyStakingRewards(1, {from: owner});
-	}, 5000);
+	setInterval(async() => {
+    	// Set rewards
+    	console.log(`Send notifyRewards`);
+    	await stakingContractInstance.notifyRewards({from: owner});
+	}, 10000);
 }
 
 start();

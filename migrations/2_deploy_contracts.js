@@ -22,7 +22,7 @@ module.exports = async function(deployer, network, [
 	let end = start + 3600;
 
 	if (network === 'development') {
-		start = now + 10;
+		start = now + 300;
 		end = start + 60;
 	}
 

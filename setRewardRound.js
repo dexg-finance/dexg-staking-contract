@@ -32,14 +32,11 @@ async function start() {
 
 	// use UTC+0 time zone
 	let now = moment.utc().unix();
-	let start = now + 30;
+	let start = now + 60;
 	let end = start + 60;
 
-	setInterval(async() => {
-    	// Set rewards
-    	console.log(`notifyRewardUpdate...`);
-    	await stakingContractInstance.notifyRewardUpdate({from: owner});
-	}, 10000);
+	console.log(`setStakingRound ${start} ${end}`);
+	await stakingContractInstance.setRewardRound(2, toWei(1000), start, end, {from: owner});
 }
 
 start();

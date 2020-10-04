@@ -25,7 +25,9 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     uint public rewardRate = 0;
     uint public lastUpdateTime;
     uint public rewardPerTokenStored = 0;
-    bool public stakingStarted = false;
+    uint public rewardRounds = 0;
+    uint public rewardsDuration = 0;
+    bool public inStaking = true;
 
     // 
     address public beneficial;
@@ -34,7 +36,6 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
     mapping(address => uint) public rewards;
     mapping(address => uint) public userRewardPerTokenPaid;
 
-    uint public DURATION;
     uint private _start;
     uint private _end;
 
@@ -130,54 +131,51 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
                 .add(rewards[account]);
     }
 
-    function setStakingRound(uint round, uint reward, uint start, uint end) 
+    function setRewardRound(uint round, uint reward, uint start, uint end) 
         external
         onlyOwner    
     {
-        stakingStarted= false;
+        require(block.timestamp > periodFinish, "Previous rewards period not complete");
+        require(rewardRounds < round, "This round completed");
 
-        // staking already starts
-        if (periodFinish > 0) {
-            return;
-        }
-
-        // start a new staking round
-        periodFinish = 0;
-        lastUpdateTime = 0;
-        _remainingRewards = 0;
-        rewardRate = 0;
-
+        rewardRounds = round;
         _rewards = reward;        
         _start = start;
         _end = end;
-        DURATION = _end.sub(_start);
-        stakingStarted= true;
+        rewardsDuration = _end.sub(_start);
+
+        inStaking = false;
     }
 
-    function notifyStakingRewards(uint round)
+    function notifyRewards()
         external
         onlyOwner
         updateReward(address(0))
     {
-        if (!stakingStarted) {
-            return;
-        }
-
-        if (block.timestamp < _start) {
+        // staking started
+        if (inStaking == true) {
             return;
         }
 
         if (block.timestamp >= periodFinish) {
-            rewardRate = _rewards.div(DURATION);
-            stakingStarted = false;
+            rewardRate = _rewards.div(rewardsDuration);
         } else {
             uint remaining = periodFinish.sub(block.timestamp);
             uint leftover = remaining.mul(rewardRate);
-            rewardRate = _rewards.add(leftover).div(DURATION);
+            rewardRate = _rewards.add(leftover).div(rewardsDuration);
             _remainingRewards = leftover;
         }
+
+        // Ensure the provided reward amount is not more than the balance in the contract.
+        // This keeps the reward rate in the right range, preventing overflows due to
+        // very high values of rewardRate in the earned and rewardsPerToken functions;
+        // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
+        uint balance = _token1.balanceOf(address(this));
+        require(rewardRate <= balance.div(rewardsDuration), "Provided reward too high");
+
+        inStaking = true;
         lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp.add(DURATION);
+        periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(_rewards);
     }
 
