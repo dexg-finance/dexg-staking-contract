@@ -25,3 +25,4 @@ secrets.json
 # ================================================
 bower_components
 .env*
+bin/

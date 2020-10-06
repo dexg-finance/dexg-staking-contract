@@ -22,8 +22,8 @@ module.exports = async function(deployer, network, [
 	let end = start + 3600;
 
 	if (network === 'development') {
-		start = now + 300;
-		end = start + 60;
+		start = now + 600;
+		end = start + 600;
 	}
 
     // Deploy the BPT token Contract
@@ -39,9 +39,9 @@ module.exports = async function(deployer, network, [
     stakingContractInstance = await StakingDextoken.deployed();
 
     const data = 
-    `VUE_APP_STAKING_TOKEN_ADDRESS=${BPT.address}\n` +
-    `VUE_APP_REWARD_TOKEN_ADDRESS=${Dextoken.address}\n` +
-    `VUE_APP_STAKING_CONTRACT_ADDRESS=${StakingDextoken.address}\n` +
+    `VUE_APP_LUNA_STAKING_TOKEN_ADDRESS=${BPT.address}\n` +
+    `VUE_APP_LUNA_REWARD_TOKEN_ADDRESS=${Dextoken.address}\n` +
+    `VUE_APP_LUNA_STAKING_CONTRACT_ADDRESS=${StakingDextoken.address}\n` +
     `ACCOUNT0=${owner}\n` +
     `ACCOUNT1=${account1}\n` +
     `ACCOUNT2=${account2}\n`;
