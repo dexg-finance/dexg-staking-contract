@@ -243,12 +243,12 @@ contract StakingDextoken is ReentrancyGuard, Pausable {
         uint reward = earned(msg.sender);
         /// Not overflow        
         require(_token1.balanceOf(address(this)) >= reward, "claim: insufficient balance");        
-        if (reward > 0) {
-            rewards[msg.sender] = 0;
-            claimOf[msg.sender] = reward;  
-            _token1.safeTransfer(msg.sender, reward);
-            emit TokenClaim(msg.sender, reward);
-        } 
+        require(reward > 0, "claim: zero rewards");                
+
+        rewards[msg.sender] = 0;
+        claimOf[msg.sender] = reward;
+        _token1.safeTransfer(msg.sender, reward);
+        emit TokenClaim(msg.sender, reward);
     }
 
     function freezeAccount(address account) external onlyOwner returns (bool) {
