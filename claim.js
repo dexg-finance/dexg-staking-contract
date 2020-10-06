@@ -28,14 +28,13 @@ function fromWei(amount) {
 }
 
 const id = parseInt(process.argv[2]);
-const amount = parseFloat(process.argv[3]);
 
 async function start() {
 	const stakingContractInstance = await stakingContractRegistry.at(stakingContract);
 	const stakingTokenInstance = await stakingTokenRegistry.at(stakingToken);
 
-	console.log(`account${id}: unstake ${amount}`);
-	await stakingContractInstance.withdraw(toWei(amount), {from: account[id]});
+	console.log(`account${id}: claim`);
+	await stakingContractInstance.claim({from: account[id]});
 }
 
 start();

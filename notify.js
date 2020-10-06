@@ -11,8 +11,8 @@ const stakingTokenJson = require("./build/contracts/BPT.json");
 const stakingTokenRegistry = contract(stakingTokenJson);
 stakingTokenRegistry.setProvider(provider);
 
-const stakingContract = process.env.VUE_APP_STAKING_CONTRACT_ADDRESS;
-const stakingToken = process.env.VUE_APP_STAKING_TOKEN_ADDRESS;
+const stakingContract = process.env.VUE_APP_LUNA_STAKING_CONTRACT_ADDRESS;
+const stakingToken = process.env.VUE_APP_LUNA_STAKING_TOKEN_ADDRESS;
 const owner = process.env.ACCOUNT0;
 const account1 = process.env.ACCOUNT1;
 const account2 = process.env.ACCOUNT2;
@@ -47,26 +47,25 @@ async function start() {
 
 	setInterval(async() => {
 		let totalRewards = await stakingContractInstance.totalRewards({from: owner});
-		console.log(`totalRewards... ${fromWei(totalRewards)}`);
+		console.log(`TotalRewards... ${fromWei(totalRewards)}`);
 
 		let stakeOf1 = await stakingContractInstance.stakeOf(owner, {from: owner});
-		console.log(`stakeOf owner... ${fromWei(stakeOf1)}`);
+		console.log(`  stakeOf owner... ${fromWei(stakeOf1)}`);
 
 		let stakeOf2 = await stakingContractInstance.stakeOf(account1, {from: account1});
-		console.log(`stakeOf account1... ${fromWei(stakeOf2)}`);
+		console.log(`  stakeOf account1... ${fromWei(stakeOf2)}`);
 
 		let rewards1 = await stakingContractInstance.rewardOf(owner, {from: owner});
-		console.log(`rewardOf owner... ${fromWei(rewards1)}`);
+		console.log(`  rewardOf owner... ${fromWei(rewards1)}`);
 
 		let rewards2 = await stakingContractInstance.rewardOf(account1, {from: account1});
-		console.log(`rewardOf account1... ${fromWei(rewards2)}`);
+		console.log(`  rewardOf account1... ${fromWei(rewards2)}`);
 
 		let rewards3 = await stakingContractInstance.rewardOf(account2, {from: account2});
-		console.log(`rewardOf account2... ${fromWei(rewards3)}`);
+		console.log(`  rewardOf account2... ${fromWei(rewards3)}`);
 
-		let issued = parseFloat(fromWei(rewards1))+parseFloat(fromWei(rewards2))+parseFloat(fromWei(rewards3));
-
-		console.log(`reward issued... ${issued}`);	
+		let remainingRewards = await stakingContractInstance.remainingRewards({ from: owner });
+		console.log(`  remaining reward... ${remainingRewards}`);	
 	}, 10000);
 }
 

@@ -11,8 +11,8 @@ const stakingTokenJson = require("./build/contracts/BPT.json");
 const stakingTokenRegistry = contract(stakingTokenJson);
 stakingTokenRegistry.setProvider(provider);
 
-const stakingContract = process.env.VUE_APP_STAKING_CONTRACT_ADDRESS;
-const stakingToken = process.env.VUE_APP_STAKING_TOKEN_ADDRESS;
+const stakingContract = process.env.VUE_APP_LUNA_STAKING_CONTRACT_ADDRESS;
+const stakingToken = process.env.VUE_APP_LUNA_STAKING_TOKEN_ADDRESS;
 const account = [
 	process.env.ACCOUNT0, 
 	process.env.ACCOUNT1, 
