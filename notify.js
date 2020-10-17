@@ -1,7 +1,16 @@
 require('dotenv').config();
 const Web3 = require('web3');
-const provider = new Web3.providers.HttpProvider("http://localhost:7545");
+
+//
+const HDWalletProvider = require('truffle-hdwallet-provider');
+const fs = require('fs');
+const mnemonic = fs.readFileSync(".secrets").toString().trim();
+const provider1 = new HDWalletProvider(mnemonic, "https://ropsten.infura.io/v3/" + process.env.INFURA_PROJECT_ID);
+//
+const provider2 = new Web3.providers.HttpProvider("http://localhost:7545");
 const contract = require('truffle-contract');
+//
+const provider = provider1;
 
 const stakingContractJson = require("./build/contracts/StakingDextoken.json");
 const stakingContractRegistry = contract(stakingContractJson);
